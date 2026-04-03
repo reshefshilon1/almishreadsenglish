@@ -1,95 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 40 50% 97%;
+    --foreground: 25 30% 25%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 40 40% 95%;
+    --card-foreground: 25 30% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 40 50% 97%;
+    --popover-foreground: 25 30% 25%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 340 60% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 180 40% 75%;
+    --secondary-foreground: 180 40% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 25 15% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 80% 75%;
+    --accent-foreground: 35 50% 25%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 40 30% 88%;
+    --input: 40 30% 88%;
+    --ring: 340 60% 65%;
 
-    --radius: 0.5rem;
+    --radius: 1.25rem;
+
+    /* Custom game colors */
+    --game-pink: 340 60% 75%;
+    --game-blue: 200 60% 75%;
+    --game-green: 150 45% 70%;
+    --game-yellow: 45 80% 75%;
+    --game-purple: 270 45% 75%;
+    --game-orange: 25 75% 70%;
+    --game-coral: 10 70% 75%;
+
+    --star-color: 45 95% 55%;
+    --star-glow: 45 95% 70%;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
@@ -100,6 +65,113 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Fredoka One', cursive;
+  }
+
+  .font-body {
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .game-card {
+    @apply rounded-3xl p-6 shadow-lg transition-all duration-300 active:scale-95 cursor-pointer;
+  }
+
+  .game-card-pink {
+    background: linear-gradient(135deg, hsl(var(--game-pink)), hsl(340 50% 82%));
+  }
+
+  .game-card-blue {
+    background: linear-gradient(135deg, hsl(var(--game-blue)), hsl(200 50% 82%));
+  }
+
+  .level-btn {
+    @apply rounded-2xl py-5 px-8 text-xl font-bold shadow-md transition-all duration-200 active:scale-95 cursor-pointer;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .letter-display {
+    font-family: 'Fredoka One', cursive;
+    @apply text-foreground;
+    font-size: clamp(8rem, 30vw, 16rem);
+    line-height: 1;
+    text-shadow: 4px 4px 0 hsl(var(--game-pink) / 0.3);
+  }
+
+  .mic-pulse {
+    animation: mic-pulse 1.5s ease-in-out infinite;
+  }
+
+  .star-icon {
+    color: hsl(var(--star-color));
+    filter: drop-shadow(0 0 6px hsl(var(--star-glow)));
+  }
+
+  .mascot-bounce {
+    animation: mascot-bounce 2s ease-in-out infinite;
+  }
+
+  .mascot-dance {
+    animation: mascot-dance 0.5s ease-in-out infinite;
+  }
+
+  .mascot-think {
+    animation: mascot-think 1s ease-in-out infinite;
+  }
+
+  .letter-enter {
+    animation: letter-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .tell-me-highlight {
+    animation: tell-me-glow 1s ease-in-out infinite;
+  }
+
+  .confetti-star {
+    animation: confetti-fall 1.5s ease-out forwards;
+  }
+}
+
+@keyframes mic-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes mascot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes mascot-dance {
+  0%, 100% { transform: rotate(-5deg) scale(1.05); }
+  50% { transform: rotate(5deg) scale(1.05); }
+}
+
+@keyframes mascot-think {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes letter-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes tell-me-glow {
+  0%, 100% { box-shadow: 0 0 10px hsl(var(--game-yellow) / 0.4); }
+  50% { box-shadow: 0 0 25px hsl(var(--game-yellow) / 0.8); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(100px) rotate(360deg) scale(0); opacity: 0; }
 }
