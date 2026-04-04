@@ -1,58 +1,59 @@
 import { useNavigate } from "react-router-dom";
-import capybaraMascot from "@/assets/capybara-mascot.png";
+// ── Once you save the painting to src/assets/capybara-duck.jpg, replace the
+//    next line with:  import capybaraDuck from "@/assets/capybara-duck.jpg";
+import capybaraDuck from "@/assets/capybara-duck.png";
 
 const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-6 bg-background">
-      {/* Title */}
-      <h1 className="font-display text-3xl sm:text-4xl text-foreground text-center mt-2 mb-2">
-        Almish Reads English
-      </h1>
+    <div className="h-[100dvh] flex flex-row overflow-hidden bg-background">
 
-      {/* Mascot */}
-      <div className="mascot-bounce mb-4">
+      {/* ── Left half: capybara painting ───────────────────────────────── */}
+      <div className="w-[45%] relative overflow-hidden flex-shrink-0">
         <img
-          src={capybaraMascot}
-          alt="Capybara mascot with rubber duck"
-          width={512}
-          height={512}
-          className="w-40 h-40 sm:w-52 sm:h-52 object-contain drop-shadow-lg"
+          src={capybaraDuck}
+          alt="Capybara with rubber duck"
+          className="absolute inset-0 w-full h-full object-cover object-top"
         />
       </div>
 
-      {/* Game cards */}
-      <div className="w-full max-w-md flex flex-col gap-5">
+      {/* ── Right half: title + game buttons ───────────────────────────── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 gap-5 overflow-y-auto">
+
+        <h1 className="font-display text-center text-foreground leading-snug"
+            style={{ fontSize: "clamp(1.3rem, 5vw, 2rem)" }}>
+          Almish<br />Reads English
+        </h1>
+
         {/* Uppercase card */}
         <button
           onClick={() => navigate("/levels/uppercase")}
-          className="game-card game-card-pink flex items-center gap-4"
+          className="home-game-btn game-card-pink w-full"
         >
-          <div className="flex-shrink-0 w-20 h-20 rounded-2xl bg-primary-foreground/30 flex items-center justify-center">
-            <span className="font-display text-5xl text-foreground">A</span>
+          <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
+            <span className="font-display text-4xl text-foreground">A</span>
           </div>
-          <div className="text-left">
-            <div className="font-display text-xl text-foreground">Big Letters Game</div>
-            <div className="text-sm text-foreground/70 font-body mt-1">Learn uppercase letters!</div>
-            <div className="text-3xl mt-1">🐜🐻🦒</div>
+          <div className="text-left min-w-0">
+            <div className="font-display text-lg text-foreground leading-tight">Big Letters</div>
+            <div className="font-body text-sm text-foreground/70 mt-0.5">Uppercase A–Z</div>
           </div>
         </button>
 
         {/* Lowercase card */}
         <button
           onClick={() => navigate("/levels/lowercase")}
-          className="game-card game-card-blue flex items-center gap-4"
+          className="home-game-btn game-card-blue w-full"
         >
-          <div className="flex-shrink-0 w-20 h-20 rounded-2xl bg-primary-foreground/30 flex items-center justify-center">
-            <span className="font-display text-5xl text-foreground">a</span>
+          <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
+            <span className="font-display text-4xl text-foreground">a</span>
           </div>
-          <div className="text-left">
-            <div className="font-display text-xl text-foreground">Small Letters Game</div>
-            <div className="text-sm text-foreground/70 font-body mt-1">Learn lowercase letters!</div>
-            <div className="text-3xl mt-1">🐘🦊🐧</div>
+          <div className="text-left min-w-0">
+            <div className="font-display text-lg text-foreground leading-tight">Small Letters</div>
+            <div className="font-body text-sm text-foreground/70 mt-0.5">Lowercase a–z</div>
           </div>
         </button>
+
       </div>
     </div>
   );

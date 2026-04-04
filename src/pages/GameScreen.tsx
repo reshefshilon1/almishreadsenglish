@@ -125,7 +125,6 @@ const GameScreen = () => {
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewQueue, setReviewQueue] = useState<string[]>([]);
   const [inputDisabled, setInputDisabled] = useState(true);
-  const [earnedStarsAnim, setEarnedStarsAnim] = useState(0);
   // Emoji of the animal that pops in after a correct answer
   const [currentAnimal, setCurrentAnimal] = useState<{ emoji: string; name: string } | null>(null);
 
@@ -179,7 +178,6 @@ const GameScreen = () => {
         setCurrentIndex(0);
         setAttempts(0);
         setInputDisabled(true);
-        setEarnedStarsAnim(0);
         setPhase("asking");
         setMascotState("idle");
       } else {
@@ -191,7 +189,6 @@ const GameScreen = () => {
       setCurrentIndex(nextIdx);
       setAttempts(0);
       setInputDisabled(true);
-      setEarnedStarsAnim(0);
       setPhase("asking");
       setMascotState("idle");
     }
@@ -211,7 +208,6 @@ const GameScreen = () => {
         // ── Correct ────────────────────────────────────────────────────────
         const starsEarned = attempts === 0 ? 1 : 2;
         setTotalStars((s) => s + starsEarned);
-        setEarnedStarsAnim(starsEarned);
         setCardStates((cs) => ({ ...cs, [tappedLetter]: "correct" }));
         setMascotState("happy");
         playChime();
@@ -228,7 +224,7 @@ const GameScreen = () => {
         // Part 1: praise + letter identification
         const praise =
           attempts === 0
-            ? `Amazing, Alma! This is the letter ${letterName}!`
+            ? `Very good, Alma! This is the letter ${letterName}!`
             : `Great remembering, Alma! This is the letter ${letterName}!`;
 
         setTimeout(() => {
@@ -243,17 +239,11 @@ const GameScreen = () => {
               // The ellipsis forces a natural breath between the letter sound and the sentence.
               setTimeout(() => {
                 speak(`${letterName}... ${letterName} is for ${animal}!`, () => {
-                  setTimeout(() => {
-                    setEarnedStarsAnim(0);
-                    nextLetter();
-                  }, 800);
+                  setTimeout(nextLetter, 800);
                 });
               }, 350);
             } else {
-              setTimeout(() => {
-                setEarnedStarsAnim(0);
-                nextLetter();
-              }, 700);
+              setTimeout(nextLetter, 700);
             }
           });
         }, 300);
@@ -273,9 +263,13 @@ const GameScreen = () => {
             speak("Nice try! Let's try again.", () => {
               setCardStates((cs) => ({ ...cs, [tappedLetter]: "default" }));
               setAttempts(1);
-              setInputDisabled(false);
               setMascotState("idle");
-              armIdleTimers(currentLetter);
+              // Re-state the instruction so the child knows what to find
+              setTimeout(() => {
+                speak(`Find the letter ${currentLetter.toUpperCase()}`);
+                setInputDisabled(false);
+                armIdleTimers(currentLetter);
+              }, 250);
             });
           }, 300);
         } else {
@@ -446,7 +440,10 @@ const GameScreen = () => {
 
         <div className="flex items-center gap-1.5 bg-game-yellow/40 rounded-full px-3 py-1.5">
           <Star className="w-5 h-5 star-icon fill-current" />
-          <span className="font-display text-xl text-foreground">{totalStars}</span>
+          {/* key={totalStars} remounts the span on every change, re-triggering the bump animation */}
+          <span key={totalStars} className="font-display text-xl text-foreground star-counter-bump">
+            {totalStars}
+          </span>
         </div>
       </div>
 
@@ -471,20 +468,14 @@ const GameScreen = () => {
 
         {/* Animal pop-in (appears after correct answer) */}
         <div className="h-20 flex items-center justify-center">
-          {currentAnimal ? (
+          {currentAnimal && (
             <div key={currentAnimal.emoji} className="animal-popup flex flex-col items-center gap-1">
               <span style={{ fontSize: "3.5rem", lineHeight: 1 }} role="img" aria-label={currentAnimal.name}>
                 {currentAnimal.emoji}
               </span>
               <span className="font-display text-base text-foreground/70">{currentAnimal.name}</span>
             </div>
-          ) : earnedStarsAnim > 0 ? (
-            <div className="flex gap-2">
-              {Array.from({ length: earnedStarsAnim }).map((_, i) => (
-                <Star key={i} className="w-10 h-10 star-icon fill-current confetti-star" />
-              ))}
-            </div>
-          ) : null}
+          )}
         </div>
 
         {/* 2×2 card grid */}
