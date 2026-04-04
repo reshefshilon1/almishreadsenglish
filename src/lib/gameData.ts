@@ -40,50 +40,61 @@ export const LEVELS: Record<number, string[]> = {
   4: Object.keys(LETTER_MAP),
 };
 
-// Phonetic variations for tolerant matching
-const PHONETIC_MAP: Record<string, string[]> = {
-  A: ["a", "ay", "eh", "ae"],
-  B: ["b", "be", "bee", "bea"],
-  C: ["c", "ce", "see", "sea", "si"],
-  D: ["d", "de", "dee", "dea"],
-  E: ["e", "ee", "ea"],
-  F: ["f", "ef", "eff"],
-  G: ["g", "ge", "gee", "ji", "jee"],
-  H: ["h", "aitch", "ach", "ha"],
-  I: ["i", "ai", "eye", "aye"],
-  J: ["j", "jay", "je", "jei"],
-  K: ["k", "ka", "kay", "ke"],
-  L: ["l", "el", "ell"],
-  M: ["m", "em", "mm"],
-  N: ["n", "en", "nn"],
-  O: ["o", "oh", "oo"],
-  P: ["p", "pe", "pee", "pi"],
-  Q: ["q", "cu", "cue", "queue", "kew", "kyu"],
-  R: ["r", "ar", "are"],
-  S: ["s", "es", "ess"],
-  T: ["t", "te", "tee", "ti"],
-  U: ["u", "you", "yu", "oo"],
-  V: ["v", "ve", "vee", "vi"],
-  W: ["w", "double u", "double you", "dub"],
-  X: ["x", "ex", "eks"],
-  Y: ["y", "why", "wai", "wy"],
-  Z: ["z", "ze", "zee", "zed", "zet"],
+// Letters that look or sound similar — used to pick meaningful distractors
+const SIMILAR_LETTERS: Record<string, string[]> = {
+  A: ["H", "N", "E", "R"],
+  B: ["D", "P", "R", "Q"],
+  C: ["G", "O", "Q", "S"],
+  D: ["B", "P", "Q", "O"],
+  E: ["F", "B", "A", "L"],
+  F: ["E", "T", "P", "L"],
+  G: ["C", "O", "Q", "S"],
+  H: ["A", "N", "M", "K"],
+  I: ["J", "L", "T", "F"],
+  J: ["I", "L", "T", "F"],
+  K: ["R", "X", "H", "Y"],
+  L: ["I", "J", "F", "T"],
+  M: ["N", "W", "H", "A"],
+  N: ["M", "H", "W", "A"],
+  O: ["C", "G", "Q", "D"],
+  P: ["B", "D", "R", "F"],
+  Q: ["O", "G", "C", "D"],
+  R: ["B", "P", "K", "F"],
+  S: ["Z", "C", "G", "O"],
+  T: ["F", "I", "L", "J"],
+  U: ["V", "W", "Y", "N"],
+  V: ["U", "W", "Y", "X"],
+  W: ["M", "N", "V", "U"],
+  X: ["K", "Y", "Z", "V"],
+  Y: ["V", "X", "K", "U"],
+  Z: ["S", "X", "N", "E"],
 };
 
-export function matchLetter(spoken: string, targetLetter: string): boolean {
-  const clean = spoken.trim().toLowerCase();
-  if (!clean) return false;
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-  // Direct match
-  if (clean === targetLetter.toLowerCase()) return true;
+export function getDistractors(target: string, count: number): string[] {
+  const upper = target.toUpperCase();
+  const allLetters = Object.keys(LETTER_MAP);
+  const preferred = (SIMILAR_LETTERS[upper] ?? []).filter((l) => l !== upper);
 
-  // Phonetic match
-  const variants = PHONETIC_MAP[targetLetter.toUpperCase()] || [];
-  if (variants.some((v) => clean.includes(v) || v.includes(clean))) return true;
+  const pool: string[] = [];
+  for (const l of preferred) {
+    if (pool.length >= count) break;
+    pool.push(l);
+  }
 
-  // Check if the spoken text contains the letter name
-  const animalData = LETTER_MAP[targetLetter.toUpperCase()];
-  if (animalData && clean.includes(animalData.animal.toLowerCase())) return true;
+  const remaining = shuffleArray(allLetters.filter((l) => l !== upper && !pool.includes(l)));
+  for (const l of remaining) {
+    if (pool.length >= count) break;
+    pool.push(l);
+  }
 
-  return false;
+  return pool.slice(0, count);
 }

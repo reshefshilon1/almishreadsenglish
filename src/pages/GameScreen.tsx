@@ -1,236 +1,417 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mic, Volume2, Star } from "lucide-react";
+import { ArrowLeft, Volume2, Star } from "lucide-react";
 import capybaraMascot from "@/assets/capybara-mascot.png";
-import { LETTER_MAP, LEVELS, matchLetter } from "@/lib/gameData";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { LETTER_MAP, LEVELS, getDistractors } from "@/lib/gameData";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 
-type MascotState = "idle" | "listening" | "happy" | "thinking" | "dancing" | "sleeping";
-type GamePhase = "intro" | "showing" | "listening" | "result" | "tellme" | "roundEnd" | "review";
+// ── Card color palette ───────────────────────────────────────────────────────
+const CARD_COLORS = [
+  { bg: "#A7D8FF", shadow: "#7db8e8" }, // blue
+  { bg: "#FFD6A5", shadow: "#e8b87a" }, // peach
+  { bg: "#B8F2E6", shadow: "#85d4c0" }, // mint
+  { bg: "#FFF3B0", shadow: "#e8d47a" }, // yellow
+];
 
-const CLAP_SOUND_URL = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+// ── Types ────────────────────────────────────────────────────────────────────
+type CardState = "default" | "correct" | "wrong" | "highlighted" | "disabled";
+type MascotState = "idle" | "happy" | "thinking" | "dancing";
+// "intro"    = welcome message before first card
+// "asking"   = cards visible, waiting for child to tap
+// "roundEnd" = all letters done, celebration screen
+type GamePhase = "intro" | "asking" | "roundEnd";
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Web Audio sound effects ──────────────────────────────────────────────────
+// AudioContext is created lazily inside a user-gesture handler to satisfy
+// browser autoplay policies (especially iOS Safari).
+let _audioCtx: AudioContext | null = null;
+
+function getAudioCtx(): AudioContext | null {
+  try {
+    if (!_audioCtx || _audioCtx.state === "closed") {
+      _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (_audioCtx.state === "suspended") _audioCtx.resume();
+    return _audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function playClick(): void {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.value = 820;
+  osc.type = "sine";
+  gain.gain.setValueAtTime(0.22, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.09);
+}
+
+function playBoop(): void {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  [360, 270].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = "sine";
+    const t = ctx.currentTime + i * 0.13;
+    gain.gain.setValueAtTime(0.28, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    osc.start(t);
+    osc.stop(t + 0.11);
+  });
+}
+
+function playChime(): void {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  [523, 659, 784, 1047].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = "sine";
+    const t = ctx.currentTime + i * 0.09;
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+    osc.start(t);
+    osc.stop(t + 0.75);
+  });
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 const GameScreen = () => {
   const { gameType, level } = useParams<{ gameType: string; level: string }>();
   const navigate = useNavigate();
-  const { speak, cancel } = useSpeechSynthesis();
+  // voicesReady: true once the browser has loaded its TTS voice list.
+  // We gate the intro narration on this so the first utterance always uses
+  // the selected female voice rather than whatever default fires before voices load.
+  const { speak, cancel, voicesReady } = useSpeechSynthesis();
 
   const isUppercase = gameType === "uppercase";
-  const levelNum = parseInt(level || "1");
-  const levelLetters = LEVELS[levelNum] || LEVELS[1];
+  const levelNum = parseInt(level ?? "1");
+  const levelLetters = LEVELS[levelNum] ?? LEVELS[1];
+
+  const [queue] = useState<string[]>(() => shuffle(levelLetters));
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [options, setOptions] = useState<string[]>([]);
   const [phase, setPhase] = useState<GamePhase>("intro");
   const [mascotState, setMascotState] = useState<MascotState>("idle");
   const [attempts, setAttempts] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
-  const [earnedStars, setEarnedStars] = useState(0);
+  const [cardStates, setCardStates] = useState<Record<string, CardState>>({});
   const [incorrectLetters, setIncorrectLetters] = useState<string[]>([]);
   const [reviewMode, setReviewMode] = useState(false);
-  const [reviewLetters, setReviewLetters] = useState<string[]>([]);
-  const [showTellMe, setShowTellMe] = useState(false);
-  const [highlightTellMe, setHighlightTellMe] = useState(false);
-  const [silencePrompted, setSilencePrompted] = useState(false);
-  const phaseRef = useRef(phase);
+  const [reviewQueue, setReviewQueue] = useState<string[]>([]);
+  const [inputDisabled, setInputDisabled] = useState(true);
+  const [earnedStarsAnim, setEarnedStarsAnim] = useState(0);
+  // Emoji of the animal that pops in after a correct answer
+  const [currentAnimal, setCurrentAnimal] = useState<{ emoji: string; name: string } | null>(null);
+
+  const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const totalStarsRef = useRef(0);
+  totalStarsRef.current = totalStars;
+  const phaseRef = useRef<GamePhase>("intro");
   phaseRef.current = phase;
 
-  const activeLetters = reviewMode ? reviewLetters : levelLetters;
-  const currentLetter = activeLetters[currentIndex];
-  const letterData = currentLetter ? LETTER_MAP[currentLetter] : null;
-  const displayLetter = currentLetter
-    ? isUppercase
-      ? currentLetter.toUpperCase()
-      : currentLetter.toLowerCase()
-    : "";
+  const activeQueue = reviewMode ? reviewQueue : queue;
+  const currentLetter = activeQueue[currentIndex] ?? null;
 
-  const handleCorrect = useCallback(
-    (firstAttempt: boolean) => {
-      const stars = firstAttempt ? 1 : 2;
-      setEarnedStars(stars);
-      setTotalStars((s) => s + stars);
-      setMascotState("happy");
-      setPhase("result");
+  // ── Timer helpers ──────────────────────────────────────────────────────────
+  const clearTimers = useCallback(() => {
+    if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    replayTimerRef.current = null;
+    idleTimerRef.current = null;
+  }, []);
 
-      // Play clap
-      try {
-        const audio = new Audio(CLAP_SOUND_URL);
-        audio.play().catch(() => {});
-      } catch {}
-
-      const ld = LETTER_MAP[currentLetter];
-      const msg = firstAttempt
-        ? `Amazing, Alma! This is the letter ${currentLetter}. ${currentLetter} is for ${ld?.animal}!`
-        : `Great remembering, Alma! This is the letter ${currentLetter}. ${currentLetter} is for ${ld?.animal}!`;
-
-      speak(msg, () => {
-        setTimeout(() => nextLetter(), 800);
-      });
+  const armIdleTimers = useCallback(
+    (letter: string) => {
+      clearTimers();
+      replayTimerRef.current = setTimeout(() => {
+        if (phaseRef.current === "asking") {
+          speak(`Find the letter ${letter.toUpperCase()}`);
+        }
+      }, 5000);
+      idleTimerRef.current = setTimeout(() => {
+        if (phaseRef.current === "asking") {
+          setMascotState("thinking");
+          speak("Let's try, Alma!");
+        }
+      }, 8000);
     },
-    [currentLetter, speak]
+    [clearTimers, speak]
   );
 
-  const handleIncorrect = useCallback(() => {
-    setMascotState("thinking");
-
-    if (attempts === 0) {
-      setAttempts(1);
-      speak("Nice try! Let's try again.", () => {
-        if (phaseRef.current !== "intro") {
-          setPhase("showing");
-        }
-      });
-      // Track as incorrect on first attempt
-      if (!reviewMode) {
-        setIncorrectLetters((prev) =>
-          prev.includes(currentLetter) ? prev : [...prev, currentLetter]
-        );
-      }
-    } else {
-      // 2 failed attempts
-      setHighlightTellMe(true);
-      speak(
-        "You can click the Tell Me button shown below to hear the answer.",
-        () => {
-          setPhase("tellme");
-        }
-      );
-    }
-  }, [attempts, currentLetter, reviewMode, speak]);
-
-  const onSpeechResult = useCallback(
-    (transcript: string) => {
-      if (matchLetter(transcript, currentLetter)) {
-        handleCorrect(attempts === 0);
-      } else {
-        handleIncorrect();
-      }
-    },
-    [currentLetter, attempts, handleCorrect, handleIncorrect]
-  );
-
-  const onSilence = useCallback(() => {
-    if (!silencePrompted) {
-      setSilencePrompted(true);
-      speak("You can say it out loud, Alma!");
-    }
-  }, [silencePrompted, speak]);
-
-  const { isListening, isSupported, startListening, stopListening } =
-    useSpeechRecognition(onSpeechResult, onSilence);
-
+  // ── Advance to next letter ─────────────────────────────────────────────────
   const nextLetter = useCallback(() => {
+    clearTimers();
+    setCurrentAnimal(null);
     const nextIdx = currentIndex + 1;
-    if (nextIdx >= activeLetters.length) {
+
+    if (nextIdx >= activeQueue.length) {
       if (!reviewMode && incorrectLetters.length > 0) {
-        // Start review round
         setReviewMode(true);
-        setReviewLetters([...incorrectLetters]);
+        setReviewQueue(shuffle([...incorrectLetters]));
         setIncorrectLetters([]);
         setCurrentIndex(0);
         setAttempts(0);
-        setEarnedStars(0);
-        setSilencePrompted(false);
-        setShowTellMe(false);
-        setHighlightTellMe(false);
-        setPhase("showing");
+        setInputDisabled(true);
+        setEarnedStarsAnim(0);
+        setPhase("asking");
         setMascotState("idle");
       } else {
-        // Game complete
         setPhase("roundEnd");
         setMascotState("dancing");
-        speak(`You did it, Alma! You won ${totalStars} stars!`);
+        speak(`You did it, Alma! You won ${totalStarsRef.current} stars!`);
       }
     } else {
       setCurrentIndex(nextIdx);
       setAttempts(0);
-      setEarnedStars(0);
-      setSilencePrompted(false);
-      setShowTellMe(false);
-      setHighlightTellMe(false);
-      setPhase("showing");
+      setInputDisabled(true);
+      setEarnedStarsAnim(0);
+      setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeLetters, reviewMode, incorrectLetters, totalStars, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectLetters, clearTimers, speak]);
 
-  const handleTellMe = useCallback(() => {
-    const ld = LETTER_MAP[currentLetter];
-    setMascotState("thinking");
-    speak(`This is the letter ${currentLetter}. ${currentLetter}.`, () => {
-      setTimeout(() => nextLetter(), 500);
-    });
-  }, [currentLetter, speak, nextLetter]);
+  // ── Card tap handler ───────────────────────────────────────────────────────
+  const handleCardTap = useCallback(
+    (tappedLetter: string) => {
+      if (inputDisabled || phase !== "asking" || !currentLetter) return;
+      if (cardStates[tappedLetter] === "disabled") return;
 
-  // Intro
-  useEffect(() => {
-    if (phase === "intro") {
-      setMascotState("happy");
-      speak("Let's learn letters together, Alma!", () => {
-        setPhase("showing");
-      });
-    }
-  }, [phase, speak]);
+      setInputDisabled(true);
+      clearTimers();
+      playClick();
 
-  // Show letter -> start listening
-  useEffect(() => {
-    if (phase === "showing" && currentLetter) {
-      setMascotState("idle");
-      setShowTellMe(true);
+      if (tappedLetter === currentLetter) {
+        // ── Correct ────────────────────────────────────────────────────────
+        const starsEarned = attempts === 0 ? 1 : 2;
+        setTotalStars((s) => s + starsEarned);
+        setEarnedStarsAnim(starsEarned);
+        setCardStates((cs) => ({ ...cs, [tappedLetter]: "correct" }));
+        setMascotState("happy");
+        playChime();
 
-      const timer = setTimeout(() => {
-        speak("What letter is this?", () => {
-          if (isSupported) {
-            setMascotState("listening");
-            setPhase("listening");
-            startListening();
+        if (!reviewMode && attempts > 0) {
+          setIncorrectLetters((prev) => prev.filter((l) => l !== currentLetter));
+        }
+
+        const letterName = currentLetter.toUpperCase();
+        const letterData = LETTER_MAP[letterName];
+        const animal = letterData?.animal ?? "";
+        const emoji = letterData?.emoji ?? "";
+
+        // Part 1: praise + letter identification
+        const praise =
+          attempts === 0
+            ? `Amazing, Alma! This is the letter ${letterName}!`
+            : `Great remembering, Alma! This is the letter ${letterName}!`;
+
+        setTimeout(() => {
+          speak(praise, () => {
+            // Show the animal emoji as the second sentence begins
+            if (attempts === 0 && emoji) {
+              setCurrentAnimal({ emoji, name: animal });
+            }
+
+            if (attempts === 0 && animal) {
+              // Part 2: letter + "is for" with a deliberate pause before it
+              // The ellipsis forces a natural breath between the letter sound and the sentence.
+              setTimeout(() => {
+                speak(`${letterName}... ${letterName} is for ${animal}!`, () => {
+                  setTimeout(() => {
+                    setEarnedStarsAnim(0);
+                    nextLetter();
+                  }, 800);
+                });
+              }, 350);
+            } else {
+              setTimeout(() => {
+                setEarnedStarsAnim(0);
+                nextLetter();
+              }, 700);
+            }
+          });
+        }, 300);
+      } else {
+        // ── Wrong ──────────────────────────────────────────────────────────
+        playBoop();
+        setCardStates((cs) => ({ ...cs, [tappedLetter]: "wrong" }));
+        setMascotState("thinking");
+
+        if (attempts === 0) {
+          if (!reviewMode) {
+            setIncorrectLetters((prev) =>
+              prev.includes(currentLetter) ? prev : [...prev, currentLetter]
+            );
           }
-        });
-      }, 600);
+          setTimeout(() => {
+            speak("Nice try! Let's try again.", () => {
+              setCardStates((cs) => ({ ...cs, [tappedLetter]: "default" }));
+              setAttempts(1);
+              setInputDisabled(false);
+              setMascotState("idle");
+              armIdleTimers(currentLetter);
+            });
+          }, 300);
+        } else {
+          // Second wrong attempt — highlight the correct card
+          setTimeout(() => {
+            speak("You can tap the correct letter, Alma!", () => {
+              setCardStates((cs) => {
+                const next: Record<string, CardState> = {};
+                for (const l of Object.keys(cs)) {
+                  if (l === currentLetter) next[l] = "highlighted";
+                  else if (l === tappedLetter) next[l] = "disabled";
+                  else next[l] = cs[l] === "default" ? "default" : "disabled";
+                }
+                return next;
+              });
+              setInputDisabled(false);
+              setMascotState("idle");
+            });
+          }, 300);
+        }
+      }
+    },
+    [
+      inputDisabled,
+      phase,
+      currentLetter,
+      cardStates,
+      attempts,
+      reviewMode,
+      clearTimers,
+      speak,
+      nextLetter,
+      armIdleTimers,
+    ]
+  );
 
-      return () => clearTimeout(timer);
-    }
-  }, [phase, currentLetter, isSupported, speak, startListening]);
+  const handleReplay = useCallback(() => {
+    if (!currentLetter || phase !== "asking") return;
+    clearTimers();
+    speak(`Find the letter ${currentLetter.toUpperCase()}`);
+    armIdleTimers(currentLetter);
+  }, [currentLetter, phase, clearTimers, speak, armIdleTimers]);
 
-  // Mascot class
+  // ── Intro: wait for voices, then play welcome message ─────────────────────
+  useEffect(() => {
+    if (phase !== "intro" || !voicesReady) return;
+    setInputDisabled(true);
+    speak("Let's listen and find the letter, Alma!", () => {
+      setPhase("asking");
+    });
+  }, [phase, speak, voicesReady]);
+
+  // ── Asking: generate options + play instruction on each new letter ─────────
+  useEffect(() => {
+    if (phase !== "asking" || !currentLetter) return;
+
+    const distractors = getDistractors(currentLetter, 3);
+    const opts = shuffle([currentLetter, ...distractors]);
+    setOptions(opts);
+    setCardStates(Object.fromEntries(opts.map((l) => [l, "default" as CardState])));
+
+    const timer = setTimeout(() => {
+      speak(`Find the letter ${currentLetter.toUpperCase()}`);
+      armIdleTimers(currentLetter);
+      setInputDisabled(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentLetter]);
+
+  // ── Cleanup on unmount ─────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      clearTimers();
+      cancel();
+    };
+  }, [clearTimers, cancel]);
+
   const mascotClass =
     mascotState === "dancing"
       ? "mascot-dance"
+      : mascotState === "happy"
+      ? "mascot-happy"
       : mascotState === "thinking"
       ? "mascot-think"
-      : mascotState === "listening" || mascotState === "idle"
-      ? "mascot-bounce"
-      : "";
+      : "mascot-bounce";
 
+  // ── Round-end screen ───────────────────────────────────────────────────────
   if (phase === "roundEnd") {
+    const confettiColors = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#FF6BD6"];
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
-        <div className="mascot-dance mb-6">
+      <div className="h-[100dvh] flex flex-col items-center justify-center px-4 bg-background overflow-hidden relative">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <span
+            key={i}
+            className="confetti-piece"
+            style={{
+              backgroundColor: confettiColors[i % confettiColors.length],
+              left: `${4 + (i * 4.2) % 92}%`,
+              top: `${Math.random() * 30}%`,
+              animationDelay: `${i * 0.06}s`,
+              animationDuration: `${1.2 + (i % 4) * 0.2}s`,
+              borderRadius: i % 3 === 0 ? "50%" : "2px",
+            }}
+          />
+        ))}
+
+        <div className="mascot-dance mb-4 relative z-10">
           <img
             src={capybaraMascot}
             alt="Dancing capybara"
-            width={512}
-            height={512}
-            className="w-44 h-44 object-contain"
+            className="w-44 h-44 object-contain drop-shadow-lg"
           />
         </div>
-        <div className="flex items-center gap-2 mb-4">
-          {Array.from({ length: Math.min(totalStars, 15) }).map((_, i) => (
+
+        <div className="flex items-center gap-1.5 mb-4 flex-wrap justify-center relative z-10">
+          {Array.from({ length: Math.min(totalStars, 20) }).map((_, i) => (
             <Star
               key={i}
-              className="w-8 h-8 star-icon fill-current"
-              style={{ animationDelay: `${i * 0.1}s` }}
+              className="w-8 h-8 star-icon fill-current confetti-star"
+              style={{ animationDelay: `${i * 0.07}s` }}
             />
           ))}
         </div>
-        <h2 className="font-display text-2xl text-foreground text-center mb-2">
+
+        <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">
           You did it, Alma!
         </h2>
-        <p className="font-body text-lg text-muted-foreground mb-8">
+        <p className="font-body text-xl text-muted-foreground mb-8 relative z-10">
           You won {totalStars} stars!
         </p>
+
         <button
           onClick={() => navigate("/")}
-          className="level-btn bg-game-green text-foreground text-xl"
+          className="level-btn bg-game-green text-foreground flex items-center gap-2 text-xl relative z-10"
         >
           🏠 Go Home
         </button>
@@ -238,48 +419,40 @@ const GameScreen = () => {
     );
   }
 
+  // ── Main game screen ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
-      {/* Animal emoji background */}
-      {letterData && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-          <span className="text-[20rem] sm:text-[28rem]">{letterData.emoji}</span>
-        </div>
-      )}
-
+    <div className="h-[100dvh] flex flex-col bg-background overflow-hidden select-none">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-4 relative z-10">
+      <div className="flex items-center justify-between px-4 pt-3 pb-1 flex-shrink-0">
         <button
           onClick={() => {
             cancel();
-            stopListening();
+            clearTimers();
             navigate(-1);
           }}
-          className="active:scale-95 transition-transform"
+          className="active:scale-95 transition-transform p-1 rounded-full"
+          aria-label="Back"
         >
           <ArrowLeft className="w-7 h-7 text-muted-foreground" />
         </button>
 
-        <div className={`${mascotClass}`}>
+        <div className={mascotClass}>
           <img
             src={capybaraMascot}
-            alt="Capybara"
-            width={512}
-            height={512}
-            loading="lazy"
-            className="w-16 h-16 object-contain"
+            alt="Capybara mascot"
+            className="w-14 h-14 object-contain drop-shadow-md"
           />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 bg-game-yellow/40 rounded-full px-3 py-1.5">
           <Star className="w-5 h-5 star-icon fill-current" />
-          <span className="font-display text-lg text-foreground">{totalStars}</span>
+          <span className="font-display text-xl text-foreground">{totalStars}</span>
         </div>
       </div>
 
       {/* Progress dots */}
-      <div className="flex justify-center gap-1.5 px-4 mt-2 relative z-10">
-        {activeLetters.map((_, i) => (
+      <div className="flex justify-center gap-1.5 px-4 py-1 flex-shrink-0">
+        {activeQueue.map((_, i) => (
           <div
             key={i}
             className={`h-2 rounded-full transition-all duration-300 ${
@@ -293,71 +466,73 @@ const GameScreen = () => {
         ))}
       </div>
 
-      {/* Center letter */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
-        {phase !== "intro" && currentLetter && (
-          <>
-            <div className="letter-enter">
-              <div className="letter-display">{displayLetter}</div>
-            </div>
-            {/* Stars earned this round */}
-            {earnedStars > 0 && phase === "result" && (
-              <div className="flex gap-2 mt-2">
-                {Array.from({ length: earnedStars }).map((_, i) => (
-                  <Star key={i} className="w-10 h-10 star-icon fill-current confetti-star" />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+      {/* Center — animal + stars + 2×2 card grid */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-2 min-h-0">
 
-        {phase === "intro" && (
-          <div className="text-center">
-            <div className="mascot-bounce mb-4">
-              <img
-                src={capybaraMascot}
-                alt="Capybara"
-                width={512}
-                height={512}
-                className="w-36 h-36 object-contain mx-auto"
-              />
+        {/* Animal pop-in (appears after correct answer) */}
+        <div className="h-20 flex items-center justify-center">
+          {currentAnimal ? (
+            <div key={currentAnimal.emoji} className="animal-popup flex flex-col items-center gap-1">
+              <span style={{ fontSize: "3.5rem", lineHeight: 1 }} role="img" aria-label={currentAnimal.name}>
+                {currentAnimal.emoji}
+              </span>
+              <span className="font-display text-base text-foreground/70">{currentAnimal.name}</span>
             </div>
-            <p className="font-body text-lg text-muted-foreground">Getting ready...</p>
-          </div>
-        )}
+          ) : earnedStarsAnim > 0 ? (
+            <div className="flex gap-2">
+              {Array.from({ length: earnedStarsAnim }).map((_, i) => (
+                <Star key={i} className="w-10 h-10 star-icon fill-current confetti-star" />
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {/* 2×2 card grid */}
+        <div className="grid grid-cols-2 gap-3 w-full max-w-xs sm:max-w-sm">
+          {options.map((letter, idx) => {
+            const color = CARD_COLORS[idx];
+            const state = cardStates[letter] ?? "default";
+            const displayL = isUppercase ? letter.toUpperCase() : letter.toLowerCase();
+
+            let animClass = "letter-card-enter";
+            if (state === "correct") animClass += " letter-card-correct";
+            else if (state === "wrong") animClass += " letter-card-wrong";
+            else if (state === "highlighted") animClass += " letter-card-highlighted";
+
+            const isCardDisabled =
+              inputDisabled || state === "disabled" || state === "correct";
+
+            return (
+              <button
+                key={letter}
+                onClick={() => handleCardTap(letter)}
+                disabled={isCardDisabled}
+                className={`letter-card ${animClass}`}
+                style={{
+                  backgroundColor: color.bg,
+                  boxShadow: `0 6px 0 ${color.shadow}`,
+                  animationDelay: `${idx * 0.08}s`,
+                }}
+                aria-label={`Letter ${displayL}`}
+              >
+                <span className="letter-card-text">{displayL}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Bottom controls */}
-      <div className="relative z-10 px-4 pb-8 flex flex-col items-center gap-4">
-        {/* Mic indicator */}
-        {isListening && (
-          <div className="flex items-center gap-2 text-primary">
-            <div className="mic-pulse">
-              <Mic className="w-8 h-8" />
-            </div>
-            <span className="font-body font-bold text-sm">Listening...</span>
-          </div>
-        )}
-
-        {/* Tell Me button */}
-        {showTellMe && (
-          <button
-            onClick={handleTellMe}
-            className={`level-btn bg-game-yellow text-foreground flex items-center gap-3 text-lg ${
-              highlightTellMe ? "tell-me-highlight" : ""
-            }`}
-          >
-            <Volume2 className="w-6 h-6" />
-            Tell Me
-          </button>
-        )}
-
-        {/* Mic not supported fallback */}
-        {!isSupported && phase === "showing" && (
-          <p className="font-body text-sm text-muted-foreground text-center">
-            Voice not available — use "Tell Me" to hear letters
-          </p>
-        )}
+      {/* Bottom — replay button */}
+      <div className="flex-shrink-0 flex justify-center px-4 pb-5 pt-2">
+        <button
+          onClick={handleReplay}
+          disabled={inputDisabled || phase !== "asking"}
+          className="replay-btn"
+          aria-label="Replay instruction"
+        >
+          <Volume2 className="w-6 h-6" />
+          <span>Replay</span>
+        </button>
       </div>
     </div>
   );

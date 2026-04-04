@@ -138,6 +138,81 @@
   .confetti-star {
     animation: confetti-fall 1.5s ease-out forwards;
   }
+
+  /* ── Letter selection cards ─────────────────── */
+  .letter-card {
+    @apply rounded-3xl flex items-center justify-center cursor-pointer;
+    @apply transition-transform duration-150 active:scale-95;
+    aspect-ratio: 1 / 1;
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.12);
+    border: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .letter-card:disabled {
+    @apply opacity-40 cursor-not-allowed;
+    pointer-events: none;
+  }
+
+  .letter-card-enter {
+    animation: card-enter 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .letter-card-correct {
+    animation: card-correct 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+  }
+
+  .letter-card-wrong {
+    animation: card-wrong 0.5s ease-in-out;
+  }
+
+  .letter-card-highlighted {
+    animation: card-highlight-pulse 0.9s ease-in-out infinite;
+  }
+
+  .letter-card-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(3rem, 14vw, 6rem);
+    line-height: 1;
+    color: hsl(var(--foreground));
+    user-select: none;
+  }
+
+  /* ── Replay button ──────────────────────────── */
+  .replay-btn {
+    @apply flex items-center gap-2 rounded-full px-6 py-3;
+    @apply transition-all duration-200 active:scale-95 cursor-pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: hsl(var(--game-blue));
+    box-shadow: 0 4px 0 hsl(200 50% 58%);
+    color: hsl(var(--foreground));
+  }
+
+  .replay-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* ── Mascot happy jump ──────────────────────── */
+  .mascot-happy {
+    animation: mascot-happy 0.55s ease-in-out 2;
+  }
+
+  /* ── Animal pop-in ─────────────────────────── */
+  .animal-popup {
+    animation: animal-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ── Confetti pieces ────────────────────────── */
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confetti-piece 1.4s ease-out forwards;
+  }
 }
 
 @keyframes mic-pulse {
@@ -174,4 +249,46 @@
 @keyframes confetti-fall {
   0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
   100% { transform: translateY(100px) rotate(360deg) scale(0); opacity: 0; }
+}
+
+@keyframes card-enter {
+  0% { transform: scale(0.75) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes card-correct {
+  0%   { transform: scale(1);    box-shadow: 0 6px 0 rgba(0,0,0,0.12); }
+  25%  { transform: scale(1.14); box-shadow: 0 0 0 6px rgba(60,200,100,0.55), 0 6px 0 rgba(0,0,0,0.12); }
+  55%  { transform: scale(0.96); box-shadow: 0 0 0 4px rgba(60,200,100,0.35), 0 6px 0 rgba(0,0,0,0.12); }
+  75%  { transform: scale(1.07); box-shadow: 0 0 0 5px rgba(60,200,100,0.45), 0 6px 0 rgba(0,0,0,0.12); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 4px rgba(60,200,100,0.4),  0 6px 0 rgba(0,0,0,0.12); }
+}
+
+@keyframes card-wrong {
+  0%,100% { transform: translateX(0); filter: brightness(1); }
+  15%,55% { transform: translateX(-9px); filter: brightness(0.88) sepia(0.8) saturate(3) hue-rotate(-25deg); }
+  35%,75% { transform: translateX(9px);  filter: brightness(0.88) sepia(0.8) saturate(3) hue-rotate(-25deg); }
+}
+
+@keyframes card-highlight-pulse {
+  0%,100% { box-shadow: 0 0 0 3px hsl(var(--game-yellow) / 0.7), 0 6px 0 rgba(0,0,0,0.12); }
+  50%     { box-shadow: 0 0 0 7px hsl(var(--game-yellow) / 1),   0 6px 0 rgba(0,0,0,0.12), 0 0 22px hsl(var(--game-yellow) / 0.5); }
+}
+
+@keyframes mascot-happy {
+  0%,100% { transform: translateY(0) scale(1); }
+  35%     { transform: translateY(-18px) scale(1.12); }
+  65%     { transform: translateY(-8px) scale(1.06); }
+}
+
+@keyframes confetti-piece {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(120px) rotate(540deg) scale(0.3); opacity: 0; }
+}
+
+@keyframes animal-pop-in {
+  0%   { transform: scale(0.3) rotate(-12deg); opacity: 0; }
+  65%  { transform: scale(1.15) rotate(4deg);  opacity: 1; }
+  85%  { transform: scale(0.93) rotate(-2deg); opacity: 1; }
+  100% { transform: scale(1)    rotate(0deg);  opacity: 1; }
 }
