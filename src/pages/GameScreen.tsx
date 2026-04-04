@@ -224,8 +224,8 @@ const GameScreen = () => {
         // Part 1: praise + letter identification
         const praise =
           attempts === 0
-            ? `Very good, Alma! This is the letter ${letterName}!`
-            : `Great remembering, Alma! This is the letter ${letterName}!`;
+            ? `Very good! This is the letter ${letterName}!`
+            : `Great remembering! This is the letter ${letterName}!`;
 
         setTimeout(() => {
           speak(praise, () => {

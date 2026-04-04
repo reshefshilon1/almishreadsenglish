@@ -10,11 +10,13 @@ const Index = () => {
     <div className="h-[100dvh] flex flex-row overflow-hidden bg-background">
 
       {/* ── Left half: capybara painting ───────────────────────────────── */}
-      <div className="w-[45%] relative overflow-hidden flex-shrink-0">
+      {/* Background colour sampled from the jungle edges of the painting */}
+      <div className="w-[45%] relative overflow-hidden flex-shrink-0 flex items-center justify-center"
+           style={{ backgroundColor: "#4a7c3f" }}>
         <img
           src={capybaraDuck}
           alt="Capybara with rubber duck"
-          className="absolute inset-0 w-full h-full object-cover object-top"
+          className="w-full h-auto object-contain"
         />
       </div>
 
