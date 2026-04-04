@@ -19,7 +19,7 @@ const Index = () => {
       </div>
 
       {/* ── Right half: title + game buttons ───────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 gap-5 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center px-3 py-6 gap-5 overflow-y-auto">
 
         <h1 className="font-display text-center text-foreground leading-snug"
             style={{ fontSize: "clamp(1.3rem, 5vw, 2rem)" }}>
@@ -29,28 +29,30 @@ const Index = () => {
         {/* Uppercase card */}
         <button
           onClick={() => navigate("/levels/uppercase")}
-          className="home-game-btn game-card-pink w-full"
+          className="home-game-btn game-card-pink"
+          style={{ width: "min(100%, 190px)" }}
         >
-          <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
-            <span className="font-display text-4xl text-foreground">A</span>
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/30 flex items-center justify-center">
+            <span className="font-display text-3xl text-foreground">A</span>
           </div>
           <div className="text-left min-w-0">
-            <div className="font-display text-lg text-foreground leading-tight">Big Letters</div>
-            <div className="font-body text-sm text-foreground/70 mt-0.5">Uppercase A–Z</div>
+            <div className="font-display text-base text-foreground leading-tight">Big Letters</div>
+            <div className="font-body text-xs text-foreground/70 mt-0.5">Uppercase A–Z</div>
           </div>
         </button>
 
         {/* Lowercase card */}
         <button
           onClick={() => navigate("/levels/lowercase")}
-          className="home-game-btn game-card-blue w-full"
+          className="home-game-btn game-card-blue"
+          style={{ width: "min(100%, 190px)" }}
         >
-          <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
-            <span className="font-display text-4xl text-foreground">a</span>
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/30 flex items-center justify-center">
+            <span className="font-display text-3xl text-foreground">a</span>
           </div>
           <div className="text-left min-w-0">
-            <div className="font-display text-lg text-foreground leading-tight">Small Letters</div>
-            <div className="font-body text-sm text-foreground/70 mt-0.5">Lowercase a–z</div>
+            <div className="font-display text-base text-foreground leading-tight">Small Letters</div>
+            <div className="font-body text-xs text-foreground/70 mt-0.5">Lowercase a–z</div>
           </div>
         </button>
 

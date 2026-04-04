@@ -238,7 +238,7 @@ const GameScreen = () => {
               // Part 2: letter + "is for" with a deliberate pause before it
               // The ellipsis forces a natural breath between the letter sound and the sentence.
               setTimeout(() => {
-                speak(`${letterName}... ${letterName} is for ${animal}!`, () => {
+                speak(`${letterName} is for ${animal}!`, () => {
                   setTimeout(nextLetter, 800);
                 });
               }, 350);
@@ -466,14 +466,29 @@ const GameScreen = () => {
       {/* Center — animal + stars + 2×2 card grid */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 gap-2 min-h-0">
 
-        {/* Animal pop-in (appears after correct answer) */}
-        <div className="h-20 flex items-center justify-center">
+        {/* Animal pop-in — shown next to the letter, big */}
+        <div className="h-24 flex items-center justify-center">
           {currentAnimal && (
-            <div key={currentAnimal.emoji} className="animal-popup flex flex-col items-center gap-1">
-              <span style={{ fontSize: "3.5rem", lineHeight: 1 }} role="img" aria-label={currentAnimal.name}>
+            <div key={currentAnimal.emoji} className="animal-popup flex items-center gap-3">
+              {/* The letter that was just answered */}
+              <span
+                className="font-display leading-none text-foreground"
+                style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)" }}
+              >
+                {currentLetter && (isUppercase ? currentLetter.toUpperCase() : currentLetter.toLowerCase())}
+              </span>
+              {/* Animal emoji at matching size */}
+              <span
+                style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)", lineHeight: 1 }}
+                role="img"
+                aria-label={currentAnimal.name}
+              >
                 {currentAnimal.emoji}
               </span>
-              <span className="font-display text-base text-foreground/70">{currentAnimal.name}</span>
+              {/* Animal name */}
+              <span className="font-display text-lg text-foreground/70 leading-tight">
+                {currentAnimal.name}
+              </span>
             </div>
           )}
         </div>
