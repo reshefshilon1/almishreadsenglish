@@ -229,22 +229,15 @@ const GameScreen = () => {
 
         setTimeout(() => {
           speak(praise, () => {
-            // Show the animal emoji as the second sentence begins
-            if (attempts === 0 && emoji) {
+            // Always show the animal and say "X is for Y", regardless of attempt count
+            if (emoji) {
               setCurrentAnimal({ emoji, name: animal });
             }
-
-            if (attempts === 0 && animal) {
-              // Part 2: letter + "is for" with a deliberate pause before it
-              // The ellipsis forces a natural breath between the letter sound and the sentence.
-              setTimeout(() => {
-                speak(`${letterName} is for ${animal}!`, () => {
-                  setTimeout(nextLetter, 800);
-                });
-              }, 350);
-            } else {
-              setTimeout(nextLetter, 700);
-            }
+            setTimeout(() => {
+              speak(`${letterName} is for ${animal}!`, () => {
+                setTimeout(nextLetter, 800);
+              });
+            }, 350);
           });
         }, 300);
       } else {
