@@ -21,8 +21,8 @@ export const SOUND_MAP: Record<string, SoundEntry> = {
   n:  { sound: "n",  exampleWord: "nest",     phonemeGroup: "n",       ttsSound: "nuh",  ttsName: "n"   },
   r:  { sound: "r",  exampleWord: "rain",     phonemeGroup: "r",       ttsSound: "ruh",  ttsName: "r"   },
   // Level 2 — Short vowels
-  a:  { sound: "a",  exampleWord: "apple",    phonemeGroup: "short-a", ttsSound: "aah",  ttsName: "a"   },
-  e:  { sound: "e",  exampleWord: "egg",      phonemeGroup: "short-e", ttsSound: "eh",   ttsName: "e"   },
+  a:  { sound: "a",  exampleWord: "ant",       phonemeGroup: "short-a", ttsSound: "aah",  ttsName: "a"   },
+  e:  { sound: "e",  exampleWord: "elephant",  phonemeGroup: "short-e", ttsSound: "eh",   ttsName: "e"   },
   i:  { sound: "i",  exampleWord: "igloo",    phonemeGroup: "short-i", ttsSound: "ih",   ttsName: "i"   },
   o:  { sound: "o",  exampleWord: "octopus",  phonemeGroup: "short-o", ttsSound: "oh",   ttsName: "o"   },
   u:  { sound: "u",  exampleWord: "umbrella", phonemeGroup: "short-u", ttsSound: "uh",   ttsName: "u"   },
