@@ -104,6 +104,10 @@
     background: linear-gradient(135deg, hsl(var(--game-blue)), hsl(200 50% 82%));
   }
 
+  .game-card-green {
+    background: linear-gradient(135deg, hsl(var(--game-green)), hsl(150 40% 78%));
+  }
+
   .home-game-btn {
     @apply rounded-3xl p-4 shadow-lg flex items-center gap-3;
     @apply transition-all duration-200 active:scale-95 cursor-pointer;

@@ -1,39 +1,44 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 
-// Female English voices in priority order.
-// "Google US English" is intentionally excluded — it maps to a male voice on many systems.
+// American English voices in priority order.
+// "Google UK English Female" is intentionally excluded — it produces a British accent.
+// Preference: named US voices → any en-US female → any en-US → British female fallback.
 const VOICE_PRIORITY = [
-  "Google UK English Female",
   "Microsoft Zira Desktop - English (United States)",
   "Microsoft Zira - English (United States)",
   "Microsoft Jenny Online (Natural) - English (United States)",
   "Microsoft Aria Online (Natural) - English (United States)",
   "Microsoft Jenny - English (United States)",
   "Microsoft Aria - English (United States)",
-  "Samantha",  // macOS / iOS
-  "Karen",     // macOS Australian
-  "Victoria",  // macOS
-  "Moira",     // macOS Irish
-  "Tessa",     // macOS South African
-  "Fiona",     // macOS Scottish
+  "Samantha",  // macOS / iOS — American
 ];
 
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  // 1. Try the named priority list first
+  // 1. Try the named US priority list first
   for (const name of VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  // 2. Fall back to any English voice whose name suggests "female"
-  const female = voices.find(
+  // 2. Any en-US voice whose name suggests "female"
+  const usFemale = voices.find(
+    (v) =>
+      v.lang === "en-US" &&
+      /female|woman|girl|zira|jenny|aria|samantha/i.test(v.name)
+  );
+  if (usFemale) return usFemale;
+  // 3. Any en-US voice (American accent over British female)
+  const us = voices.find((v) => v.lang === "en-US");
+  if (us) return us;
+  // 4. Any English female voice (last resort)
+  const anyFemale = voices.find(
     (v) =>
       v.lang.startsWith("en") &&
       /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(
         v.name
       )
   );
-  if (female) return female;
-  // 3. Any English voice
+  if (anyFemale) return anyFemale;
+  // 5. Any English voice
   return voices.find((v) => v.lang.startsWith("en")) ?? null;
 }
 

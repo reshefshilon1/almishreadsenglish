@@ -58,6 +58,21 @@ const Index = () => {
           </div>
         </button>
 
+        {/* Sounds card */}
+        <button
+          onClick={() => navigate("/sounds")}
+          className="home-game-btn game-card-green"
+          style={{ width: "min(100%, 190px)" }}
+        >
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/30 flex items-center justify-center">
+            <span className="font-display text-3xl text-foreground">🔊</span>
+          </div>
+          <div className="text-left min-w-0">
+            <div className="font-display text-base text-foreground leading-tight">Sounds Game</div>
+            <div className="font-body text-xs text-foreground/70 mt-0.5">Phonics sh, ch…</div>
+          </div>
+        </button>
+
       </div>
     </div>
   );
