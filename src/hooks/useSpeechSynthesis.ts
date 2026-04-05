@@ -50,13 +50,7 @@ export function useSpeechSynthesis() {
     };
     loadVoices();
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
-    // Failsafe: on some mobile browsers voiceschanged never fires.
-    // Unblock the game after 1 s regardless, using whatever voices are available.
-    const fallback = setTimeout(() => setVoicesReady(true), 1000);
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
-      clearTimeout(fallback);
-    };
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
   const cancel = useCallback(() => {
