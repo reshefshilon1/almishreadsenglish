@@ -1,48 +1,40 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 
-// American English voices in priority order.
-// "Google UK English Female" is intentionally excluded — it produces a British accent.
-// Preference: named US voices → any en-US female → any en-US → British female fallback.
+// Female English voices in priority order.
+// "Google US English" is intentionally excluded — it maps to a male voice on many systems.
 const VOICE_PRIORITY = [
+  "Google UK English Female",
   "Microsoft Zira Desktop - English (United States)",
   "Microsoft Zira - English (United States)",
   "Microsoft Jenny Online (Natural) - English (United States)",
   "Microsoft Aria Online (Natural) - English (United States)",
   "Microsoft Jenny - English (United States)",
   "Microsoft Aria - English (United States)",
-  "Samantha",  // macOS / iOS — American
+  "Samantha",  // macOS / iOS
+  "Karen",     // macOS Australian
+  "Victoria",  // macOS
+  "Moira",     // macOS Irish
+  "Tessa",     // macOS South African
+  "Fiona",     // macOS Scottish
 ];
 
-// Normalize lang codes: "en_US", "en-us", "en-US" all → "en-us"
-const normLang = (lang: string) => lang.replace("_", "-").toLowerCase();
-const isEnUS = (v: SpeechSynthesisVoice) => normLang(v.lang) === "en-us";
-const isEn   = (v: SpeechSynthesisVoice) => normLang(v.lang).startsWith("en");
-
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  if (voices.length === 0) return null;
-
-  // 1. Named US priority list
+  // 1. Try the named priority list first
   for (const name of VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  // 2. Local en-US female (local voices are more reliable on mobile)
-  const localUSFemale = voices.find(
-    (v) => v.localService && isEnUS(v) &&
-      /female|woman|girl|zira|jenny|aria|samantha/i.test(v.name)
+  // 2. Fall back to any English voice whose name suggests "female"
+  const female = voices.find(
+    (v) =>
+      v.lang.startsWith("en") &&
+      /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(
+        v.name
+      )
   );
-  if (localUSFemale) return localUSFemale;
-  // 3. Any local en-US voice
-  const localUS = voices.find((v) => v.localService && isEnUS(v));
-  if (localUS) return localUS;
-  // 4. Any en-US voice (including remote)
-  const us = voices.find(isEnUS);
-  if (us) return us;
-  // 5. Any local English voice
-  const localEn = voices.find((v) => v.localService && isEn(v));
-  if (localEn) return localEn;
-  // 6. Any English voice
-  return voices.find(isEn) ?? null;
+  if (female) return female;
+  // 3. Any English voice
+  return voices.find((v) => v.lang.startsWith("en")) ?? null;
 }
 
 export function useSpeechSynthesis() {
