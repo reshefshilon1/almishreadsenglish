@@ -13,33 +13,36 @@ const VOICE_PRIORITY = [
   "Samantha",  // macOS / iOS — American
 ];
 
+// Normalize lang codes: "en_US", "en-us", "en-US" all → "en-us"
+const normLang = (lang: string) => lang.replace("_", "-").toLowerCase();
+const isEnUS = (v: SpeechSynthesisVoice) => normLang(v.lang) === "en-us";
+const isEn   = (v: SpeechSynthesisVoice) => normLang(v.lang).startsWith("en");
+
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  // 1. Try the named US priority list first
+  if (voices.length === 0) return null;
+
+  // 1. Named US priority list
   for (const name of VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  // 2. Any en-US voice whose name suggests "female"
-  const usFemale = voices.find(
-    (v) =>
-      v.lang === "en-US" &&
+  // 2. Local en-US female (local voices are more reliable on mobile)
+  const localUSFemale = voices.find(
+    (v) => v.localService && isEnUS(v) &&
       /female|woman|girl|zira|jenny|aria|samantha/i.test(v.name)
   );
-  if (usFemale) return usFemale;
-  // 3. Any en-US voice (American accent over British female)
-  const us = voices.find((v) => v.lang === "en-US");
+  if (localUSFemale) return localUSFemale;
+  // 3. Any local en-US voice
+  const localUS = voices.find((v) => v.localService && isEnUS(v));
+  if (localUS) return localUS;
+  // 4. Any en-US voice (including remote)
+  const us = voices.find(isEnUS);
   if (us) return us;
-  // 4. Any English female voice (last resort)
-  const anyFemale = voices.find(
-    (v) =>
-      v.lang.startsWith("en") &&
-      /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(
-        v.name
-      )
-  );
-  if (anyFemale) return anyFemale;
-  // 5. Any English voice
-  return voices.find((v) => v.lang.startsWith("en")) ?? null;
+  // 5. Any local English voice
+  const localEn = voices.find((v) => v.localService && isEn(v));
+  if (localEn) return localEn;
+  // 6. Any English voice
+  return voices.find(isEn) ?? null;
 }
 
 export function useSpeechSynthesis() {
