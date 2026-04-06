@@ -79,7 +79,10 @@ export function useSpeechSynthesis() {
       onEnd?.();
     };
 
-    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
+    // Chrome Android fix: cancel() can leave synthesis in a paused/broken state.
+    // resume() resets it before the next speak() call.
+    window.speechSynthesis.resume();
 
     const voice = pickVoice(voicesRef.current);
     const utterance = new SpeechSynthesisUtterance(text);
