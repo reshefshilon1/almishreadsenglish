@@ -121,8 +121,10 @@ const SoundsGameScreen = () => {
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewQueue, setReviewQueue] = useState<string[]>([]);
   const [inputDisabled, setInputDisabled] = useState(true);
-  // Sound + example word shown after a correct tap
-  const [soundReveal, setSoundReveal] = useState<{ sound: string; word: string } | null>(null);
+  // Image shown during question + label shown after correct tap
+  const [currentWordEmoji, setCurrentWordEmoji] = useState<string | null>(null);
+  const [showWordLabel, setShowWordLabel] = useState(false);
+  const [showNextButton, setShowNextButton] = useState(false);
 
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,7 +157,9 @@ const SoundsGameScreen = () => {
   // ── Advance to next sound ─────────────────────────────────────────────────
   const nextSound = useCallback(() => {
     clearTimers();
-    setSoundReveal(null);
+    setCurrentWordEmoji(null);
+    setShowWordLabel(false);
+    setShowNextButton(false);
     const nextIdx = currentIndex + 1;
 
     if (nextIdx >= activeQueue.length) {
@@ -194,7 +198,6 @@ const SoundsGameScreen = () => {
 
       const entry = SOUND_MAP[currentSound];
       const word = entry?.exampleWord ?? "";
-      const tts = entry?.ttsSound ?? currentSound;
       const name = entry?.ttsName ?? currentSound;
       const letterWord = currentSound.length > 1 ? "letters" : "letter";
 
@@ -210,19 +213,17 @@ const SoundsGameScreen = () => {
           setIncorrectSounds((prev) => prev.filter((s) => s !== currentSound));
         }
 
-        // Praise names the letter AND its sound so the child connects both
         const praise =
           attempts === 0
-            ? `Very good! The ${letterWord} ${name} makes the sound ${tts}!`
-            : `Great remembering! The ${letterWord} ${name} makes the sound ${tts}!`;
+            ? `Very good! The ${letterWord} ${name} starts ${word}!`
+            : `Great remembering! The ${letterWord} ${name} starts ${word}!`;
 
         setTimeout(() => {
           speak(praise, () => {
-            setSoundReveal({ sound: currentSound, word });
+            setShowWordLabel(true);
             setTimeout(() => {
-              // Reinforcement: letter name → sound → example word
-              speak(`${name}... ${tts}... like ${word}`, () => {
-                setTimeout(nextSound, 800);
+              speak(`${name} like ${word}`, () => {
+                setShowNextButton(true);
               });
             }, 350);
           });
@@ -252,9 +253,9 @@ const SoundsGameScreen = () => {
             });
           }, 300);
         } else {
-          // Second wrong attempt — reveal letter name + sound, then auto-advance
+          // Second wrong attempt — reveal letter name + word, then auto-advance
           setTimeout(() => {
-            speak(`This one is the ${letterWord} ${name}. It makes the sound ${tts}.`, () => {
+            speak(`This one is the ${letterWord} ${name}. ${name} starts ${word}.`, () => {
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const s of Object.keys(cs)) {
@@ -303,6 +304,11 @@ const SoundsGameScreen = () => {
   // ── Asking: generate options + play prompt on each new sound ──────────────
   useEffect(() => {
     if (phase !== "asking" || !currentSound) return;
+
+    const entry = SOUND_MAP[currentSound];
+    setCurrentWordEmoji(entry?.emoji ?? null);
+    setShowWordLabel(false);
+    setShowNextButton(false);
 
     const distractors = getSoundDistractors(currentSound, levelSounds, 3);
     const opts = shuffle([currentSound, ...distractors]);
@@ -441,22 +447,25 @@ const SoundsGameScreen = () => {
         ))}
       </div>
 
-      {/* Center — sound reveal + 2×2 card grid */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-2 min-h-0">
+      {/* Center — word image + label + 2×2 card grid */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-3 min-h-0">
 
-        {/* Sound reveal — pops in after correct answer */}
-        <div className="h-24 flex items-center justify-center">
-          {soundReveal && (
-            <div key={soundReveal.sound} className="animal-popup flex items-center gap-3">
-              <span
-                className="font-display leading-none text-foreground"
-                style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)" }}
-              >
-                {soundReveal.sound}
-              </span>
-              <span className="font-display text-lg text-foreground/70 leading-tight">
-                like <em>{soundReveal.word}</em>
-              </span>
+        {/* Word image — visible throughout the round */}
+        <div className="flex flex-col items-center justify-center gap-1 flex-shrink-0">
+          {currentWordEmoji && (
+            <span
+              key={currentWordEmoji}
+              className="animal-popup"
+              style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)", lineHeight: 1 }}
+              role="img"
+              aria-label={currentSound ?? ""}
+            >
+              {currentWordEmoji}
+            </span>
+          )}
+          {showWordLabel && currentSound && SOUND_MAP[currentSound] && (
+            <div key="word-label" className="animal-popup font-display text-foreground text-center" style={{ fontSize: "clamp(1.8rem, 7vw, 2.6rem)" }}>
+              {currentSound} like {SOUND_MAP[currentSound].exampleWord}
             </div>
           )}
         </div>
@@ -495,17 +504,29 @@ const SoundsGameScreen = () => {
         </div>
       </div>
 
-      {/* Bottom — replay button */}
+      {/* Bottom — replay button or Next button */}
       <div className="flex-shrink-0 flex justify-center px-4 pb-5 pt-2">
-        <button
-          onClick={handleReplay}
-          disabled={inputDisabled || phase !== "asking"}
-          className="replay-btn"
-          aria-label="Replay instruction"
-        >
-          <Volume2 className="w-6 h-6" />
-          <span>Replay</span>
-        </button>
+        {showNextButton ? (
+          <button
+            onClick={nextSound}
+            className="replay-btn"
+            style={{ backgroundColor: "#B8F2E6", boxShadow: "0 4px 0 #85d4c0" }}
+            aria-label="Next sound"
+          >
+            <span>Next</span>
+            <span style={{ fontSize: "1.2rem" }}>→</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleReplay}
+            disabled={inputDisabled || phase !== "asking"}
+            className="replay-btn"
+            aria-label="Replay instruction"
+          >
+            <Volume2 className="w-6 h-6" />
+            <span>Replay</span>
+          </button>
+        )}
       </div>
     </div>
   );
