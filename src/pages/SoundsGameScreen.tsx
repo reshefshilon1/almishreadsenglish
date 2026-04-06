@@ -126,37 +126,14 @@ const SoundsGameScreen = () => {
   const [showWordLabel, setShowWordLabel] = useState(false);
   const [showNextButton, setShowNextButton] = useState(false);
 
-  const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
-  const phaseRef = useRef<GamePhase>("intro");
-  phaseRef.current = phase;
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentSound = activeQueue[currentIndex] ?? null;
 
-  // ── Timer helpers ─────────────────────────────────────────────────────────
-  const clearTimers = useCallback(() => {
-    if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    replayTimerRef.current = null;
-    idleTimerRef.current = null;
-  }, []);
-
-  const armIdleTimers = useCallback(
-    (sound: string) => {
-      clearTimers();
-      replayTimerRef.current = setTimeout(() => {
-        if (phaseRef.current === "asking") speak(getSoundPrompt(sound));
-      }, 5000);
-    },
-    [clearTimers, speak]
-  );
-
   // ── Advance to next sound ─────────────────────────────────────────────────
   const nextSound = useCallback(() => {
-    clearTimers();
     setCurrentWordEmoji(null);
     setShowWordLabel(false);
     setShowNextButton(false);
@@ -184,7 +161,7 @@ const SoundsGameScreen = () => {
       setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeQueue, reviewMode, incorrectSounds, clearTimers, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectSounds, speak]);
 
   // ── Card tap handler ──────────────────────────────────────────────────────
   const handleCardTap = useCallback(
@@ -193,7 +170,6 @@ const SoundsGameScreen = () => {
       if (cardStates[tappedSound] === "disabled") return;
 
       setInputDisabled(true);
-      clearTimers();
       playClick();
 
       const entry = SOUND_MAP[currentSound];
@@ -203,8 +179,7 @@ const SoundsGameScreen = () => {
 
       if (tappedSound === currentSound) {
         // ── Correct ──────────────────────────────────────────────────────────
-        const starsEarned = attempts === 0 ? 1 : 2;
-        setTotalStars((s) => s + starsEarned);
+        setTotalStars((s) => s + 1);
         setCardStates((cs) => ({ ...cs, [tappedSound]: "correct" }));
         setMascotState("happy");
         playChime();
@@ -213,10 +188,7 @@ const SoundsGameScreen = () => {
           setIncorrectSounds((prev) => prev.filter((s) => s !== currentSound));
         }
 
-        const praise =
-          attempts === 0
-            ? `Very good! The ${letterWord} ${name} starts ${word}!`
-            : `Great remembering! The ${letterWord} ${name} starts ${word}!`;
+        const praise = `Very good! The ${letterWord} ${name} starts ${word}!`;
 
         setTimeout(() => {
           speak(praise, () => {
@@ -248,7 +220,6 @@ const SoundsGameScreen = () => {
               setTimeout(() => {
                 speak(getSoundPrompt(currentSound));
                 setInputDisabled(false);
-                armIdleTimers(currentSound);
               }, 250);
             });
           }, 300);
@@ -278,19 +249,15 @@ const SoundsGameScreen = () => {
       cardStates,
       attempts,
       reviewMode,
-      clearTimers,
       speak,
       nextSound,
-      armIdleTimers,
     ]
   );
 
   const handleReplay = useCallback(() => {
     if (!currentSound || phase !== "asking") return;
-    clearTimers();
     speak(getSoundPrompt(currentSound));
-    armIdleTimers(currentSound);
-  }, [currentSound, phase, clearTimers, speak, armIdleTimers]);
+  }, [currentSound, phase, speak]);
 
   // ── Intro: wait for voices, then play welcome ─────────────────────────────
   useEffect(() => {
@@ -317,7 +284,6 @@ const SoundsGameScreen = () => {
 
     const timer = setTimeout(() => {
       speak(getSoundPrompt(currentSound));
-      armIdleTimers(currentSound);
       setInputDisabled(false);
     }, 300);
 
@@ -327,11 +293,8 @@ const SoundsGameScreen = () => {
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
-    return () => {
-      clearTimers();
-      cancel();
-    };
-  }, [clearTimers, cancel]);
+    return () => { cancel(); };
+  }, [cancel]);
 
   const mascotClass =
     mascotState === "dancing"
