@@ -198,8 +198,6 @@ const SoundsGameScreen = () => {
       const entry = SOUND_MAP[currentSound];
       const word = entry?.exampleWord ?? "";
       const name = entry?.ttsName ?? currentSound;
-      const letterWord = currentSound.length > 1 ? "letters" : "letter";
-      const soundVerb = CONTAINS_SOUNDS.has(currentSound) ? "appear in" : "starts";
 
       if (tappedSound === currentSound) {
         // ── Correct ──────────────────────────────────────────────────────────
