@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Volume2, Star } from "lucide-react";
 import capybaraMascot from "@/assets/capybara-mascot.png";
 import { LETTER_MAP, LEVELS, getDistractors } from "@/lib/gameData";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getNarration } from "@/lib/narration";
 
 // ── Card color palette ───────────────────────────────────────────────────────
 const CARD_COLORS = [
@@ -106,7 +108,13 @@ const GameScreen = () => {
   // voicesReady: true once the browser has loaded its TTS voice list.
   // We gate the intro narration on this so the first utterance always uses
   // the selected female voice rather than whatever default fires before voices load.
-  const { speak, cancel, voicesReady } = useSpeechSynthesis();
+  const { settings } = useSettings();
+  const { playerName, narrationLang, gender } = settings;
+  const n = useMemo(
+    () => getNarration(narrationLang, playerName, gender),
+    [narrationLang, playerName, gender]
+  );
+  const { speak, cancel, voicesReady } = useSpeechSynthesis(narrationLang);
 
   const isUppercase = gameType === "uppercase";
   const levelNum = parseInt(level ?? "1");
@@ -152,17 +160,17 @@ const GameScreen = () => {
       clearTimers();
       replayTimerRef.current = setTimeout(() => {
         if (phaseRef.current === "asking") {
-          speak(`Find the letter ${letter.toUpperCase()}`);
+          speak(n.findLetter(letter.toUpperCase()));
         }
       }, 5000);
       idleTimerRef.current = setTimeout(() => {
         if (phaseRef.current === "asking") {
           setMascotState("thinking");
-          speak("Let's try, Alma!");
+          speak(n.letsTry);
         }
       }, 8000);
     },
-    [clearTimers, speak]
+    [clearTimers, speak, n]
   );
 
   // ── Advance to next letter ─────────────────────────────────────────────────
@@ -185,7 +193,7 @@ const GameScreen = () => {
       } else {
         setPhase("roundEnd");
         setMascotState("dancing");
-        speak(`You did it, Alma! You won ${totalStarsRef.current} stars!`);
+        speak(n.youDidIt(totalStarsRef.current));
       }
     } else {
       setCurrentIndex(nextIdx);
@@ -194,7 +202,7 @@ const GameScreen = () => {
       setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeQueue, reviewMode, incorrectLetters, clearTimers, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectLetters, clearTimers, speak, n]);
 
   // ── Card tap handler ───────────────────────────────────────────────────────
   const handleCardTap = useCallback(
@@ -223,12 +231,12 @@ const GameScreen = () => {
         const emoji = letterData?.emoji ?? "";
 
         setTimeout(() => {
-          speak(`Very good! This is the letter ${letterName}!`, () => {
+          speak(n.veryGoodLetter(letterName), () => {
             if (emoji) {
               setCurrentAnimal({ emoji, name: animal });
             }
             setTimeout(() => {
-              speak(`${letterName} is for ${animal}!`, () => {
+              speak(n.letterIsFor(letterName, animal), () => {
                 setShowNextButton(true);
               });
             }, 350);
@@ -247,13 +255,13 @@ const GameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak("Nice try! Let's try again.", () => {
+            speak(n.niceTry, () => {
               setCardStates((cs) => ({ ...cs, [tappedLetter]: "default" }));
               setAttempts(1);
               setMascotState("idle");
               // Re-state the instruction so the child knows what to find
               setTimeout(() => {
-                speak(`Find the letter ${currentLetter.toUpperCase()}`);
+                speak(n.findLetter(currentLetter.toUpperCase()));
                 setInputDisabled(false);
                 armIdleTimers(currentLetter);
               }, 250);
@@ -262,7 +270,7 @@ const GameScreen = () => {
         } else {
           // Second wrong attempt — highlight the correct card
           setTimeout(() => {
-            speak("You can tap the correct letter, Alma!", () => {
+            speak(n.tapCorrectLetter, () => {
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const l of Object.keys(cs)) {
@@ -290,24 +298,25 @@ const GameScreen = () => {
       speak,
       nextLetter,
       armIdleTimers,
+      n,
     ]
   );
 
   const handleReplay = useCallback(() => {
     if (!currentLetter || phase !== "asking") return;
     clearTimers();
-    speak(`Find the letter ${currentLetter.toUpperCase()}`);
+    speak(n.findLetter(currentLetter.toUpperCase()));
     armIdleTimers(currentLetter);
-  }, [currentLetter, phase, clearTimers, speak, armIdleTimers]);
+  }, [currentLetter, phase, clearTimers, speak, armIdleTimers, n]);
 
   // ── Intro: wait for voices, then play welcome message ─────────────────────
   useEffect(() => {
     if (phase !== "intro" || !voicesReady) return;
     setInputDisabled(true);
-    speak("Let's listen and find the letter, Alma!", () => {
+    speak(n.letsFind, () => {
       setPhase("asking");
     });
-  }, [phase, speak, voicesReady]);
+  }, [phase, speak, voicesReady, n]);
 
   // ── Asking: generate options + play instruction on each new letter ─────────
   useEffect(() => {
@@ -319,7 +328,7 @@ const GameScreen = () => {
     setCardStates(Object.fromEntries(opts.map((l) => [l, "default" as CardState])));
 
     const timer = setTimeout(() => {
-      speak(`Find the letter ${currentLetter.toUpperCase()}`);
+      speak(n.findLetter(currentLetter.toUpperCase()));
       armIdleTimers(currentLetter);
       setInputDisabled(false);
     }, 300);
@@ -384,7 +393,7 @@ const GameScreen = () => {
         </div>
 
         <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">
-          You did it, Alma!
+          You did it, {playerName}!
         </h2>
         <p className="font-body text-xl text-muted-foreground mb-8 relative z-10">
           You won {totalStars} stars!

@@ -8,10 +8,11 @@ import {
   SOUNDS_LEVELS,
   CONTAINS_SOUNDS,
   getSoundDistractors,
-  getSoundPrompt,
 } from "@/lib/soundsData";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { TEACHING_SLIDES, type TeachingSlide } from "@/lib/teachingData";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getNarration } from "@/lib/narration";
 
 // ── Card color palette (same as letter game) ─────────────────────────────────
 const CARD_COLORS = [
@@ -118,7 +119,13 @@ function playChime(): void {
 const SoundsGameScreen = () => {
   const { level } = useParams<{ level: string }>();
   const navigate = useNavigate();
-  const { speak, cancel, voicesReady } = useSpeechSynthesis();
+  const { settings } = useSettings();
+  const { playerName, narrationLang, gender } = settings;
+  const n = useMemo(
+    () => getNarration(narrationLang, playerName, gender),
+    [narrationLang, playerName, gender]
+  );
+  const { speak, cancel, voicesReady } = useSpeechSynthesis(narrationLang);
 
   const levelNum = parseInt(level ?? "1");
   const levelSounds = SOUNDS_LEVELS[levelNum] ?? SOUNDS_LEVELS[1];
@@ -171,7 +178,7 @@ const SoundsGameScreen = () => {
       } else {
         setPhase("roundEnd");
         setMascotState("dancing");
-        speak(`You did it, Alma! You won ${totalStarsRef.current} stars!`);
+        speak(n.youDidIt(totalStarsRef.current));
       }
     } else {
       setCurrentIndex(nextIdx);
@@ -180,7 +187,7 @@ const SoundsGameScreen = () => {
       setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeQueue, reviewMode, incorrectSounds, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectSounds, speak, n]);
 
   // ── Card tap handler ──────────────────────────────────────────────────────
   const handleCardTap = useCallback(
@@ -194,8 +201,6 @@ const SoundsGameScreen = () => {
       const entry = SOUND_MAP[currentSound];
       const word = entry?.exampleWord ?? "";
       const name = entry?.ttsName ?? currentSound;
-      const letterWord = currentSound.length > 1 ? "letters" : "letter";
-      const soundVerb = CONTAINS_SOUNDS.has(currentSound) ? "appear in" : "starts";
 
       if (tappedSound === currentSound) {
         // ── Correct ──────────────────────────────────────────────────────────
@@ -207,13 +212,13 @@ const SoundsGameScreen = () => {
         if (!reviewMode && attempts > 0) {
           setIncorrectSounds((prev) => prev.filter((s) => s !== currentSound));
         }
-        const praise = `Very good! The ${letterWord} ${name} ${soundVerb} ${word}!`;
+        const praise = n.veryGoodSound(name, word);
 
         setTimeout(() => {
           speak(praise, () => {
             setShowWordLabel(true);
             setTimeout(() => {
-              speak(`${name} like ${word}`, () => {
+              speak(n.soundLike(name, word), () => {
                 setShowNextButton(true);
               });
             }, 350);
@@ -232,12 +237,17 @@ const SoundsGameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak("Nice try! Let's try again.", () => {
+            speak(n.niceTry, () => {
               setCardStates((cs) => ({ ...cs, [tappedSound]: "default" }));
               setAttempts(1);
               setMascotState("idle");
               setTimeout(() => {
-                speak(getSoundPrompt(currentSound));
+                const entry = SOUND_MAP[currentSound];
+                speak(
+                  CONTAINS_SOUNDS.has(currentSound)
+                    ? n.whichLetterAppears(entry?.exampleWord ?? currentSound)
+                    : n.whichLetterStarts(entry?.exampleWord ?? currentSound)
+                );
                 setInputDisabled(false);
               }, 250);
             });
@@ -245,7 +255,7 @@ const SoundsGameScreen = () => {
         } else {
           // Second wrong attempt — reveal letter name + word, then auto-advance
           setTimeout(() => {
-            speak(`This one is the ${letterWord} ${name}. ${name} ${soundVerb} ${word}.`, () => {
+            speak(n.thisOneIs(name, word), () => {
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const s of Object.keys(cs)) {
@@ -270,13 +280,19 @@ const SoundsGameScreen = () => {
       reviewMode,
       speak,
       nextSound,
+      n,
     ]
   );
 
   const handleReplay = useCallback(() => {
     if (!currentSound || phase !== "asking") return;
-    speak(getSoundPrompt(currentSound));
-  }, [currentSound, phase, speak]);
+    const entry = SOUND_MAP[currentSound];
+    speak(
+      CONTAINS_SOUNDS.has(currentSound)
+        ? n.whichLetterAppears(entry?.exampleWord ?? currentSound)
+        : n.whichLetterStarts(entry?.exampleWord ?? currentSound)
+    );
+  }, [currentSound, phase, speak, n]);
 
   const handleNextSlide = useCallback(() => {
     cancel();
@@ -291,8 +307,8 @@ const SoundsGameScreen = () => {
   // ── Level intro narration ─────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== "levelIntro" || !voicesReady) return;
-    speak("Let's learn and practice the sounds. I'll show you some examples.");
-  }, [phase, voicesReady, speak]);
+    speak(n.levelIntro);
+  }, [phase, voicesReady, speak, n]);
 
   // ── Teaching slide narration (intro sentence + each word with pauses) ───────
   useEffect(() => {
@@ -307,7 +323,7 @@ const SoundsGameScreen = () => {
 
     const t0 = setTimeout(() => {
       if (!active) return;
-      speak(slide.intro, () => {
+      speak((narrationLang === "he" && slide.heIntro) ? slide.heIntro : slide.intro, () => {
         if (!active) return;
         let i = 0;
         const speakNext = () => {
@@ -329,16 +345,16 @@ const SoundsGameScreen = () => {
       timers.forEach(clearTimeout);
       cancel();
     };
-  }, [phase, slideIndex, voicesReady, slides, speak, cancel]);
+  }, [phase, slideIndex, voicesReady, slides, speak, cancel, narrationLang]);
 
   // ── Intro: wait for voices, then play welcome ─────────────────────────────
   useEffect(() => {
     if (phase !== "intro" || !voicesReady) return;
     setInputDisabled(true);
-    speak("Let's listen and find the sound!", () => {
+    speak(n.letsListenSound, () => {
       setPhase("asking");
     });
-  }, [phase, speak, voicesReady]);
+  }, [phase, speak, voicesReady, n]);
 
   // ── Asking: generate options + play prompt on each new sound ──────────────
   useEffect(() => {
@@ -355,7 +371,11 @@ const SoundsGameScreen = () => {
     setCardStates(Object.fromEntries(opts.map((s) => [s, "default" as CardState])));
 
     const timer = setTimeout(() => {
-      speak(getSoundPrompt(currentSound));
+      speak(
+        CONTAINS_SOUNDS.has(currentSound)
+          ? n.whichLetterAppears(entry?.exampleWord ?? currentSound)
+          : n.whichLetterStarts(entry?.exampleWord ?? currentSound)
+      );
       setInputDisabled(false);
     }, 300);
 
@@ -544,7 +564,7 @@ const SoundsGameScreen = () => {
         </div>
 
         <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">
-          You did it, Alma!
+          You did it, {playerName}!
         </h2>
         <p className="font-body text-xl text-muted-foreground mb-8 relative z-10">
           You won {totalStars} stars!
