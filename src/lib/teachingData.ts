@@ -7,6 +7,7 @@ export interface TeachingExample {
 export interface TeachingSlide {
   focusText: string;   // "A", "SH", "EE"
   intro: string;       // spoken first ("The letter A starts these words.")
+  heIntro?: string;    // Hebrew intro shown to the learner
   words: string[];     // spoken one by one with pauses after intro
   examples: TeachingExample[];
 }
@@ -17,6 +18,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "A",
       intro: "The letter A starts these words.",
+      heIntro: "הצליל A עושה 'aah' כמו במילה ant",
       words: ["ant", "as", "after"],
       examples: [
         { word: "ant",   emoji: "🐜",  highlight: "a" },
@@ -27,6 +29,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "I",
       intro: "The letter I starts these words.",
+      heIntro: "הצליל I עושה 'ih' כמו במילה iguana",
       words: ["it", "iguana", "igloo", "ink"],
       examples: [
         { word: "it",     emoji: "👉",  highlight: "i" },
@@ -38,6 +41,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "O",
       intro: "The letter O starts these words.",
+      heIntro: "הצליל O עושה 'oh' כמו במילה octopus",
       words: ["octopus", "ostrich", "Oscar"],
       examples: [
         { word: "octopus", emoji: "🐙", highlight: "o" },
@@ -48,6 +52,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "E",
       intro: "The letter E starts these words.",
+      heIntro: "הצליל E עושה 'eh' כמו במילה elephant",
       words: ["elephant", "echo", "eraser"],
       examples: [
         { word: "elephant", emoji: "🐘", highlight: "e" },
@@ -58,6 +63,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "U",
       intro: "The letter U starts these words.",
+      heIntro: "הצליל U עושה 'uh' כמו במילה umbrella",
       words: ["umbrella", "up", "under", "upset"],
       examples: [
         { word: "umbrella", emoji: "☂️", highlight: "u" },
@@ -73,6 +79,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "SH",
       intro: "The letters S H start these words.",
+      heIntro: "הצליל SH עושה 'shh' כמו במילה shore",
       words: ["shore", "shout", "shrink", "shower"],
       examples: [
         { word: "shore",  emoji: "🏖️", highlight: "sh" },
@@ -84,6 +91,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "CH",
       intro: "The letters C H start these words.",
+      heIntro: "הצליל CH עושה 'chh' כמו במילה chair",
       words: ["chair", "child", "change", "chalk"],
       examples: [
         { word: "chair",  emoji: "🪑", highlight: "ch" },
@@ -95,6 +103,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "PH",
       intro: "The letters P H start these words.",
+      heIntro: "הצליל PH עושה 'fuh' כמו במילה phone",
       words: ["phone", "photo", "phase"],
       examples: [
         { word: "phone", emoji: "📱", highlight: "ph" },
@@ -105,6 +114,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "TH",
       intro: "The letters T H can sound like this.",
+      heIntro: "הצליל TH יכול להשמע כמו במילה think",
       words: ["think", "three", "thunder", "thumb"],
       examples: [
         { word: "think",   emoji: "💭",  highlight: "th" },
@@ -116,6 +126,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "TH",
       intro: "They can also sound like this.",
+      heIntro: "הוא יכול להשמע גם כמו במילה this",
       words: ["this", "that", "they", "there"],
       examples: [
         { word: "this",  emoji: "👇",     highlight: "th" },
@@ -131,6 +142,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "AI",
       intro: "The letters A I are in these words.",
+      heIntro: "הצליל AI עושה 'ay' כמו במילה rain",
       words: ["rain", "train", "brain"],
       examples: [
         { word: "rain",  emoji: "🌧️", highlight: "ai" },
@@ -141,6 +153,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "EE",
       intro: "The letters E E are in these words.",
+      heIntro: "הצליל EE עושה 'eee' כמו במילה bee",
       words: ["bee", "tree", "feet"],
       examples: [
         { word: "bee",  emoji: "🐝", highlight: "ee" },
@@ -151,6 +164,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "EA",
       intro: "The letters E A start these words.",
+      heIntro: "הצליל EA עושה 'eee' כמו במילה eagle",
       words: ["easy", "eat", "eagle"],
       examples: [
         { word: "easy",  emoji: "✅",  highlight: "ea" },
@@ -161,6 +175,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "AU",
       intro: "The letters A U are in these words.",
+      heIntro: "הצליל AU עושה 'aw' כמו במילה autumn",
       words: ["autumn", "sauce", "author"],
       examples: [
         { word: "autumn", emoji: "🍂", highlight: "au" },
@@ -171,6 +186,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "OO",
       intro: "The letters O O are in these words.",
+      heIntro: "הצליל OO עושה 'ooo' כמו במילה boot",
       words: ["boot", "root", "moon"],
       examples: [
         { word: "boot", emoji: "👢", highlight: "oo" },
@@ -181,6 +197,7 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
     {
       focusText: "IE",
       intro: "The letters I E are in these words.",
+      heIntro: "הצליל IE עושה 'eye' כמו במילה pie",
       words: ["pie", "tie", "lie"],
       examples: [
         { word: "pie", emoji: "🥧", highlight: "ie" },
