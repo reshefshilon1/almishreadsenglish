@@ -199,7 +199,7 @@ const GameScreen = () => {
       setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeQueue, reviewMode, incorrectLetters, clearTimers, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectLetters, clearTimers, speak, n]);
 
   // ── Card tap handler ───────────────────────────────────────────────────────
   const handleCardTap = useCallback(
@@ -295,6 +295,7 @@ const GameScreen = () => {
       speak,
       nextLetter,
       armIdleTimers,
+      n,
     ]
   );
 
