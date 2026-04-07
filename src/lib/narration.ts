@@ -29,22 +29,24 @@ export interface NarrationStrings {
 
 export function getNarration(
   lang: "en" | "he",
-  playerName: string
+  playerName: string,
+  gender: "f" | "m" = "f"
 ): NarrationStrings {
   if (lang === "he") {
+    const f = gender === "f";
     return {
-      niceTry: "ניסיון טוב! בואי ננסה שוב.",
+      niceTry: f ? "ניסיון טוב! בואי ננסה שוב." : "ניסיון טוב! בוא ננסה שוב.",
       youDidIt: (n) => `כל הכבוד, ${playerName}! זכית ב-${n} כוכבים!`,
 
-      letsFind: `בואי נקשיב ונמצא את האות, ${playerName}!`,
-      findLetter: (x) => `מצאי את האות ${x}`,
-      letsTry: `בואי ננסה, ${playerName}!`,
+      letsFind: f ? `בואי נקשיב ונמצא את האות, ${playerName}!` : `בוא נקשיב ונמצא את האות, ${playerName}!`,
+      findLetter: (x) => f ? `מצאי את האות ${x}` : `מצא את האות ${x}`,
+      letsTry: f ? `בואי ננסה, ${playerName}!` : `בוא ננסה, ${playerName}!`,
       veryGoodLetter: (x) => `כל הכבוד! זו האות ${x}!`,
       letterIsFor: (x, animal) => `${x} זה ${animal}!`,
       tapCorrectLetter: `אפשר ללחוץ על האות הנכונה, ${playerName}!`,
 
-      levelIntro: "בואי נלמד את הצלילים. אני אראה לך כמה דוגמאות.",
-      letsListenSound: "בואי נקשיב ונמצא את הצליל!",
+      levelIntro: f ? "בואי נלמד את הצלילים. אני אראה לך כמה דוגמאות." : "בוא נלמד את הצלילים. אני אראה לך כמה דוגמאות.",
+      letsListenSound: f ? "בואי נקשיב ונמצא את הצליל!" : "בוא נקשיב ונמצא את הצליל!",
       whichLetterStarts: (word) => `באיזו אות פותחת המילה ${word}?`,
       whichLetterAppears: (word) => `איזו אות מופיעה במילה ${word}?`,
       veryGoodSound: (x, word) =>
@@ -53,8 +55,8 @@ export function getNarration(
       thisOneIs: (x, word) =>
         `זו האות ${x}. האות ${x} פותחת את המילה ${word}.`,
 
-      letsFindWord: `בואי נמצא את המילה, ${playerName}!`,
-      findWord: (word) => `מצאי את המילה ${word}`,
+      letsFindWord: f ? `בואי נמצא את המילה, ${playerName}!` : `בוא נמצא את המילה, ${playerName}!`,
+      findWord: (word) => f ? `מצאי את המילה ${word}` : `מצא את המילה ${word}`,
       veryGoodWord: (word) => `כל הכבוד! זו המילה ${word}.`,
       thisIsWord: (word) => `זו המילה ${word}.`,
     };

@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 export interface AppSettings {
   playerName: string;
   narrationLang: "en" | "he";
+  gender: "f" | "m";
 }
 
 const STORAGE_KEY = "almish-settings";
@@ -10,6 +11,7 @@ const STORAGE_KEY = "almish-settings";
 const DEFAULTS: AppSettings = {
   playerName: "Alma",
   narrationLang: "en",
+  gender: "f",
 };
 
 function loadFromStorage(): AppSettings {
@@ -23,6 +25,7 @@ function loadFromStorage(): AppSettings {
         parsed.narrationLang === "en" || parsed.narrationLang === "he"
           ? parsed.narrationLang
           : DEFAULTS.narrationLang,
+      gender: parsed.gender === "f" || parsed.gender === "m" ? parsed.gender : DEFAULTS.gender,
     };
   } catch {
     return DEFAULTS;
