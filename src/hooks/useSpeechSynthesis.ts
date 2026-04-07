@@ -37,7 +37,22 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
   return voices.find((v) => v.lang.startsWith("en")) ?? null;
 }
 
-export function useSpeechSynthesis() {
+const HEBREW_VOICE_PRIORITY = [
+  "Google Hebrew",
+  "Carmit",  // macOS/iOS
+];
+
+function pickHebrewVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  // 1. Try named priority list
+  for (const name of HEBREW_VOICE_PRIORITY) {
+    const match = voices.find((v) => v.name === name);
+    if (match) return match;
+  }
+  // 2. Fallback: any voice with lang starting "he"
+  return voices.find((v) => v.lang.startsWith("he")) ?? null;
+}
+
+export function useSpeechSynthesis(lang: "en" | "he" = "en") {
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const activeCallRef = useRef(0);
   const [voicesReady, setVoicesReady] = useState(false);
@@ -84,12 +99,12 @@ export function useSpeechSynthesis() {
     // resume() resets it before the next speak() call.
     window.speechSynthesis.resume();
 
-    const voice = pickVoice(voicesRef.current);
+    const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.85;
     utterance.pitch = 1.05;
     utterance.volume = 1;
-    utterance.lang = "en-US";
+    utterance.lang = lang === "he" ? "he-IL" : "en-US";
     if (voice) utterance.voice = voice;
 
     utterance.onend = fireEnd;
@@ -103,7 +118,7 @@ export function useSpeechSynthesis() {
     setTimeout(fireEnd, wordCount * 600 + 3000);
 
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [lang]);
 
   return { speak, cancel, voicesReady };
 }
