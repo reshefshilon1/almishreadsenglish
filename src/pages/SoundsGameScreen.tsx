@@ -121,7 +121,10 @@ const SoundsGameScreen = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { playerName, narrationLang, gender } = settings;
-  const n = getNarration(narrationLang, playerName, gender);
+  const n = useMemo(
+    () => getNarration(narrationLang, playerName, gender),
+    [narrationLang, playerName, gender]
+  );
   const { speak, cancel, voicesReady } = useSpeechSynthesis(narrationLang);
 
   const levelNum = parseInt(level ?? "1");

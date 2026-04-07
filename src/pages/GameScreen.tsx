@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Volume2, Star } from "lucide-react";
 import capybaraMascot from "@/assets/capybara-mascot.png";
@@ -110,7 +110,10 @@ const GameScreen = () => {
   // the selected female voice rather than whatever default fires before voices load.
   const { settings } = useSettings();
   const { playerName, narrationLang, gender } = settings;
-  const n = getNarration(narrationLang, playerName, gender);
+  const n = useMemo(
+    () => getNarration(narrationLang, playerName, gender),
+    [narrationLang, playerName, gender]
+  );
   const { speak, cancel, voicesReady } = useSpeechSynthesis(narrationLang);
 
   const isUppercase = gameType === "uppercase";
