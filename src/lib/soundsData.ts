@@ -32,33 +32,34 @@ export const SOUND_MAP: Record<string, SoundEntry> = {
   // Level 2 — Short vowels
   a:  { sound: "a",  exampleWord: "ant",      phonemeGroup: "short-a", ttsSound: "aah", ttsName: "a",  emoji: "🐜" },
   e:  { sound: "e",  exampleWord: "elephant", phonemeGroup: "short-e", ttsSound: "eh",  ttsName: "e",  emoji: "🐘" },
-  i:  { sound: "i",  exampleWord: "igloo",    phonemeGroup: "short-i", ttsSound: "ih",  ttsName: "i",  emoji: "❄️" },
+  i:  { sound: "i",  exampleWord: "iguana",   phonemeGroup: "short-i", ttsSound: "ih",  ttsName: "i",  emoji: "🦎" },
   o:  { sound: "o",  exampleWord: "octopus",  phonemeGroup: "short-o", ttsSound: "oh",  ttsName: "o",  emoji: "🐙" },
   u:  { sound: "u",  exampleWord: "umbrella", phonemeGroup: "short-u", ttsSound: "uh",  ttsName: "u",  emoji: "☂️" },
   // Level 3 — Consonant digraphs
-  sh: { sound: "sh", exampleWord: "shout",    phonemeGroup: "sh",   ttsSound: "shh",  ttsName: "S H", emoji: "📢" },
+  sh: { sound: "sh", exampleWord: "shore",    phonemeGroup: "sh",   ttsSound: "shh",  ttsName: "S H", emoji: "🏖️" },
   ch: { sound: "ch", exampleWord: "chair",    phonemeGroup: "ch",   ttsSound: "chh",  ttsName: "C H", emoji: "🪑" },
-  th: { sound: "th", exampleWord: "think",    phonemeGroup: "th",   ttsSound: "thh",  ttsName: "T H", emoji: "💭" },
+  th: { sound: "th", exampleWord: "thunder",  phonemeGroup: "th",   ttsSound: "thh",  ttsName: "T H", emoji: "⛈️" },
   ph: { sound: "ph", exampleWord: "phone",    phonemeGroup: "f",    ttsSound: "fuh",  ttsName: "P H", emoji: "📱" },
   // Level 4 — Vowel clusters
-  ee: { sound: "ee", exampleWord: "eagle",    phonemeGroup: "long-e",  ttsSound: "eee", ttsName: "E E", emoji: "🦅" },
-  ea: { sound: "ea", exampleWord: "eat",      phonemeGroup: "long-e",  ttsSound: "eee", ttsName: "E A", emoji: "🍎" },
+  ee: { sound: "ee", exampleWord: "bee",      phonemeGroup: "long-e",  ttsSound: "eee", ttsName: "E E", emoji: "🐝" },
+  ea: { sound: "ea", exampleWord: "eagle",    phonemeGroup: "long-e",  ttsSound: "eee", ttsName: "E A", emoji: "🦅" },
   ai: { sound: "ai", exampleWord: "aim",      phonemeGroup: "long-a",  ttsSound: "ay",  ttsName: "A I", emoji: "🎯" },
   au: { sound: "au", exampleWord: "autumn",   phonemeGroup: "aw",      ttsSound: "aw",  ttsName: "A U", emoji: "🍂" },
+  ie: { sound: "ie", exampleWord: "pie",      phonemeGroup: "long-i",  ttsSound: "eye", ttsName: "I E", emoji: "🥧" },
 };
 
 export const SOUNDS_LEVELS: Record<number, string[]> = {
   1: ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "q", "r", "s", "t", "v", "w", "y", "z"],
   2: ["a", "e", "i", "o", "u"],
   3: ["sh", "ch", "th", "ph"],
-  4: ["ee", "ea", "ai", "au"],
+  4: ["ee", "ea", "ai", "au", "ie"],
 };
 
 export const SOUNDS_LEVEL_INFO = [
   { level: 1, label: "Consonants",     count: 20, color: "bg-game-green"  },
   { level: 2, label: "Short Vowels",   count: 5,  color: "bg-game-blue"   },
   { level: 3, label: "Digraphs",       count: 4,  color: "bg-game-purple" },
-  { level: 4, label: "Vowel Clusters", count: 4,  color: "bg-game-orange" },
+  { level: 4, label: "Vowel Clusters", count: 5,  color: "bg-game-orange" },
 ];
 
 // Phonetically confusable sounds — preferred distractors per target.
@@ -92,6 +93,7 @@ const SIMILAR_SOUNDS: Record<string, string[]> = {
   ea: ["i", "e", "ai"],          // ee is same phonemeGroup → auto-forbidden
   ai: ["a", "e", "ee"],
   au: ["o", "u", "a"],
+  ie: ["i", "e", "ai"],          // long-i sound — ee/ea are different phonemeGroup, safe distractors
 };
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -154,9 +156,15 @@ export function getSoundDistractors(
   return pool.slice(0, count);
 }
 
+// Sounds whose letters appear in the middle of the example word (vowel clusters)
+export const CONTAINS_SOUNDS = new Set(["ee", "ea", "ai", "au", "ie", "oo"]);
+
 export function getSoundPrompt(sound: string): string {
   const entry = SOUND_MAP[sound];
   if (!entry) return `Find the card that starts the word ${sound}`;
   const letterWord = sound.length > 1 ? "letters" : "letter";
-  return `Which ${letterWord} starts the word ${entry.exampleWord}?`;
+  if (CONTAINS_SOUNDS.has(sound)) {
+    return `Which ${letterWord} appear in the word ${entry.exampleWord}?`;
+  }
+  return `Which ${letterWord} start the word ${entry.exampleWord}?`;
 }

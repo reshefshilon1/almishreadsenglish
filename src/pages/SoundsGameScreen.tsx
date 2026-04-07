@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Volume2, Star } from "lucide-react";
 import capybaraMascot from "@/assets/capybara-mascot.png";
+import capybaraDuck from "@/assets/capybara-duck.png";
 import {
   SOUND_MAP,
   SOUNDS_LEVELS,
+  CONTAINS_SOUNDS,
   getSoundDistractors,
   getSoundPrompt,
 } from "@/lib/soundsData";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { TEACHING_SLIDES, type TeachingSlide } from "@/lib/teachingData";
 
 // ── Card color palette (same as letter game) ─────────────────────────────────
 const CARD_COLORS = [
@@ -21,9 +24,21 @@ const CARD_COLORS = [
 // ── Types ─────────────────────────────────────────────────────────────────────
 type CardState = "default" | "correct" | "wrong" | "highlighted" | "disabled";
 type MascotState = "idle" | "happy" | "thinking" | "dancing";
-type GamePhase = "intro" | "asking" | "roundEnd";
+type GamePhase = "levelIntro" | "teaching" | "intro" | "asking" | "roundEnd";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function highlightWord(word: string, hl: string): JSX.Element {
+  const idx = word.toLowerCase().indexOf(hl.toLowerCase());
+  if (idx === -1) return <>{word}</>;
+  return (
+    <>
+      {word.slice(0, idx)}
+      <span className="text-primary font-black">{word.slice(idx, idx + hl.length)}</span>
+      {word.slice(idx + hl.length)}
+    </>
+  );
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -108,11 +123,15 @@ const SoundsGameScreen = () => {
   const levelNum = parseInt(level ?? "1");
   const levelSounds = SOUNDS_LEVELS[levelNum] ?? SOUNDS_LEVELS[1];
 
+  const slides: TeachingSlide[] = useMemo(() => TEACHING_SLIDES[levelNum] ?? [], [levelNum]);
+  const hasTeaching = slides.length > 0;
+
   const [queue] = useState<string[]>(() => shuffle(levelSounds));
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
-  const [phase, setPhase] = useState<GamePhase>("intro");
+  const [phase, setPhase] = useState<GamePhase>(() => hasTeaching ? "levelIntro" : "intro");
+  const [slideIndex, setSlideIndex] = useState(0);
   const [mascotState, setMascotState] = useState<MascotState>("idle");
   const [attempts, setAttempts] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
@@ -176,6 +195,7 @@ const SoundsGameScreen = () => {
       const word = entry?.exampleWord ?? "";
       const name = entry?.ttsName ?? currentSound;
       const letterWord = currentSound.length > 1 ? "letters" : "letter";
+      const soundVerb = CONTAINS_SOUNDS.has(currentSound) ? "appear in" : "starts";
 
       if (tappedSound === currentSound) {
         // ── Correct ──────────────────────────────────────────────────────────
@@ -187,8 +207,7 @@ const SoundsGameScreen = () => {
         if (!reviewMode && attempts > 0) {
           setIncorrectSounds((prev) => prev.filter((s) => s !== currentSound));
         }
-
-        const praise = `Very good! The ${letterWord} ${name} starts ${word}!`;
+        const praise = `Very good! The ${letterWord} ${name} ${soundVerb} ${word}!`;
 
         setTimeout(() => {
           speak(praise, () => {
@@ -226,7 +245,7 @@ const SoundsGameScreen = () => {
         } else {
           // Second wrong attempt — reveal letter name + word, then auto-advance
           setTimeout(() => {
-            speak(`This one is the ${letterWord} ${name}. ${name} starts ${word}.`, () => {
+            speak(`This one is the ${letterWord} ${name}. ${name} ${soundVerb} ${word}.`, () => {
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const s of Object.keys(cs)) {
@@ -258,6 +277,59 @@ const SoundsGameScreen = () => {
     if (!currentSound || phase !== "asking") return;
     speak(getSoundPrompt(currentSound));
   }, [currentSound, phase, speak]);
+
+  const handleNextSlide = useCallback(() => {
+    cancel();
+    if (slideIndex < slides.length - 1) {
+      setSlideIndex((i) => i + 1);
+    } else {
+      setSlideIndex(0);
+      setPhase("intro");
+    }
+  }, [slideIndex, slides.length, cancel]);
+
+  // ── Level intro narration ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== "levelIntro" || !voicesReady) return;
+    speak("Let's learn and practice the sounds. I'll show you some examples.");
+  }, [phase, voicesReady, speak]);
+
+  // ── Teaching slide narration (intro sentence + each word with pauses) ───────
+  useEffect(() => {
+    if (phase !== "teaching" || !voicesReady) return;
+    const slide = slides[slideIndex];
+    if (!slide) return;
+
+    let active = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    cancel();
+
+    const t0 = setTimeout(() => {
+      if (!active) return;
+      speak(slide.intro, () => {
+        if (!active) return;
+        let i = 0;
+        const speakNext = () => {
+          if (!active || i >= slide.words.length) return;
+          const word = slide.words[i++];
+          const t = setTimeout(() => {
+            if (!active) return;
+            speak(word, speakNext);
+          }, 600);
+          timers.push(t);
+        };
+        speakNext();
+      });
+    }, 400);
+    timers.push(t0);
+
+    return () => {
+      active = false;
+      timers.forEach(clearTimeout);
+      cancel();
+    };
+  }, [phase, slideIndex, voicesReady, slides, speak, cancel]);
 
   // ── Intro: wait for voices, then play welcome ─────────────────────────────
   useEffect(() => {
@@ -304,6 +376,134 @@ const SoundsGameScreen = () => {
       : mascotState === "thinking"
       ? "mascot-think"
       : "mascot-bounce";
+
+  // ── Level intro screen ────────────────────────────────────────────────────
+  if (phase === "levelIntro") {
+    return (
+      <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
+        {/* Back */}
+        <div className="flex items-center px-4 pt-3 pb-1 flex-shrink-0">
+          <button
+            onClick={() => { cancel(); navigate("/sounds"); }}
+            className="active:scale-95 transition-transform p-1 rounded-full"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-7 h-7 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Capybara image */}
+        <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#4a7c3f" }}>
+          <img
+            src={capybaraDuck}
+            alt="Capybara with rubber duck"
+            className="w-full h-full object-contain"
+          />
+        </div>
+
+        {/* Title + button */}
+        <div className="flex-shrink-0 flex flex-col items-center px-6 pt-5 pb-8 gap-4 bg-background">
+          <h1
+            className="font-display text-foreground text-center"
+            style={{ fontSize: "clamp(1.6rem, 6vw, 2.4rem)" }}
+          >
+            Let's learn sounds
+          </h1>
+          <button
+            onClick={() => { cancel(); setPhase("teaching"); }}
+            className="replay-btn justify-center"
+            style={{ backgroundColor: "#B8F2E6", boxShadow: "0 4px 0 #85d4c0", minWidth: "160px" }}
+          >
+            <span>Start</span>
+            <span style={{ fontSize: "1.2rem" }}>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Teaching slides ───────────────────────────────────────────────────────
+  if (phase === "teaching") {
+    const slide = slides[slideIndex];
+    const isLastSlide = slideIndex === slides.length - 1;
+
+    return (
+      <div className="h-[100dvh] flex flex-col bg-background overflow-hidden select-none">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-1 flex-shrink-0">
+          <button
+            onClick={() => {
+              cancel();
+              if (slideIndex > 0) setSlideIndex((i) => i - 1);
+              else setPhase("levelIntro");
+            }}
+            className="active:scale-95 transition-transform p-1 rounded-full"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-7 h-7 text-muted-foreground" />
+          </button>
+
+          {/* Progress dots */}
+          <div className="flex gap-1.5 items-center">
+            {slides.map((_, i) => (
+              <div
+                key={i}
+                className={`rounded-full transition-all duration-300 ${
+                  i === slideIndex ? "w-6 h-2 bg-primary" : "w-2 h-2 bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="w-9" />
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col items-center justify-start px-5 pt-2 gap-4 min-h-0 overflow-y-auto">
+          {/* Focus text */}
+          <div
+            className="font-display text-foreground leading-none"
+            style={{ fontSize: "clamp(4.5rem, 18vw, 7rem)" }}
+          >
+            {slide.focusText}
+          </div>
+
+          {/* Example rows */}
+          <div className="flex flex-col gap-2.5 w-full max-w-sm">
+            {slide.examples.map((ex, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 bg-muted/40 rounded-2xl px-4 py-3"
+              >
+                <span style={{ fontSize: "2rem", lineHeight: 1 }} role="img">
+                  {ex.emoji}
+                </span>
+                <span
+                  className="font-display text-foreground"
+                  style={{ fontSize: "clamp(1.5rem, 6vw, 2rem)" }}
+                >
+                  {highlightWord(ex.word, ex.highlight)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Next button */}
+        <div className="flex-shrink-0 flex justify-center px-4 pb-6 pt-3">
+          <button
+            onClick={handleNextSlide}
+            className="replay-btn justify-center"
+            style={{ backgroundColor: "#B8F2E6", boxShadow: "0 4px 0 #85d4c0", minWidth: "160px" }}
+            aria-label={isLastSlide ? "Start game" : "Next slide"}
+          >
+            <span>{isLastSlide ? "Play!" : "Next"}</span>
+            <span style={{ fontSize: "1.2rem" }}>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Round-end screen ──────────────────────────────────────────────────────
   if (phase === "roundEnd") {
@@ -368,8 +568,7 @@ const SoundsGameScreen = () => {
         <button
           onClick={() => {
             cancel();
-            clearTimers();
-            navigate(-1);
+            navigate("/sounds");
           }}
           className="active:scale-95 transition-transform p-1 rounded-full"
           aria-label="Back"

@@ -18,7 +18,7 @@ export const LETTER_MAP: Record<string, LetterData> = {
   K: { letter: "K", animal: "Kangaroo", emoji: "🦘" },
   L: { letter: "L", animal: "Lion", emoji: "🦁" },
   M: { letter: "M", animal: "Monkey", emoji: "🐒" },
-  N: { letter: "N", animal: "Narwhal", emoji: "🐳" },
+  N: { letter: "N", animal: "Narwhal", emoji: "🐬" },
   O: { letter: "O", animal: "Owl", emoji: "🦉" },
   P: { letter: "P", animal: "Penguin", emoji: "🐧" },
   Q: { letter: "Q", animal: "Queen", emoji: "👑" },

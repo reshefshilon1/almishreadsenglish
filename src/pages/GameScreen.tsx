@@ -127,6 +127,7 @@ const GameScreen = () => {
   const [inputDisabled, setInputDisabled] = useState(true);
   // Emoji of the animal that pops in after a correct answer
   const [currentAnimal, setCurrentAnimal] = useState<{ emoji: string; name: string } | null>(null);
+  const [showNextButton, setShowNextButton] = useState(false);
 
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,6 +169,7 @@ const GameScreen = () => {
   const nextLetter = useCallback(() => {
     clearTimers();
     setCurrentAnimal(null);
+    setShowNextButton(false);
     const nextIdx = currentIndex + 1;
 
     if (nextIdx >= activeQueue.length) {
@@ -206,8 +208,7 @@ const GameScreen = () => {
 
       if (tappedLetter === currentLetter) {
         // ── Correct ────────────────────────────────────────────────────────
-        const starsEarned = attempts === 0 ? 1 : 2;
-        setTotalStars((s) => s + starsEarned);
+        setTotalStars((s) => s + 1);
         setCardStates((cs) => ({ ...cs, [tappedLetter]: "correct" }));
         setMascotState("happy");
         playChime();
@@ -221,21 +222,14 @@ const GameScreen = () => {
         const animal = letterData?.animal ?? "";
         const emoji = letterData?.emoji ?? "";
 
-        // Part 1: praise + letter identification
-        const praise =
-          attempts === 0
-            ? `Very good! This is the letter ${letterName}!`
-            : `Great remembering! This is the letter ${letterName}!`;
-
         setTimeout(() => {
-          speak(praise, () => {
-            // Always show the animal and say "X is for Y", regardless of attempt count
+          speak(`Very good! This is the letter ${letterName}!`, () => {
             if (emoji) {
               setCurrentAnimal({ emoji, name: animal });
             }
             setTimeout(() => {
               speak(`${letterName} is for ${animal}!`, () => {
-                setTimeout(nextLetter, 800);
+                setShowNextButton(true);
               });
             }, 350);
           });
@@ -415,7 +409,7 @@ const GameScreen = () => {
           onClick={() => {
             cancel();
             clearTimers();
-            navigate(-1);
+            navigate(`/levels/${gameType}`);
           }}
           className="active:scale-95 transition-transform p-1 rounded-full"
           aria-label="Back"
@@ -479,8 +473,8 @@ const GameScreen = () => {
                 {currentAnimal.emoji}
               </span>
               {/* Animal name */}
-              <span className="font-display text-lg text-foreground/70 leading-tight">
-                {currentAnimal.name}
+              <span className="font-display text-foreground leading-tight" style={{ fontSize: "clamp(2rem, 8vw, 3rem)" }}>
+                {currentAnimal.name.toLowerCase()}
               </span>
             </div>
           )}
@@ -521,17 +515,29 @@ const GameScreen = () => {
         </div>
       </div>
 
-      {/* Bottom — replay button */}
+      {/* Bottom — Next button after correct, Replay otherwise */}
       <div className="flex-shrink-0 flex justify-center px-4 pb-5 pt-2">
-        <button
-          onClick={handleReplay}
-          disabled={inputDisabled || phase !== "asking"}
-          className="replay-btn"
-          aria-label="Replay instruction"
-        >
-          <Volume2 className="w-6 h-6" />
-          <span>Replay</span>
-        </button>
+        {showNextButton ? (
+          <button
+            onClick={nextLetter}
+            className="replay-btn"
+            style={{ backgroundColor: "#B8F2E6", boxShadow: "0 4px 0 #85d4c0" }}
+            aria-label="Next letter"
+          >
+            <span>Next</span>
+            <span style={{ fontSize: "1.2rem" }}>→</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleReplay}
+            disabled={inputDisabled || phase !== "asking"}
+            className="replay-btn"
+            aria-label="Replay instruction"
+          >
+            <Volume2 className="w-6 h-6" />
+            <span>Replay</span>
+          </button>
+        )}
       </div>
     </div>
   );
