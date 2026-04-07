@@ -124,6 +124,7 @@ const WordGameScreen = () => {
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewQueue, setReviewQueue] = useState<WordEntry[]>([]);
   const [inputDisabled, setInputDisabled] = useState(true);
+  const [showNextButton, setShowNextButton] = useState(false);
 
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
@@ -133,6 +134,7 @@ const WordGameScreen = () => {
 
   // ── Advance to next word ───────────────────────────────────────────────────
   const nextWord = useCallback(() => {
+    setShowNextButton(false);
     const nextIdx = currentIndex + 1;
 
     if (nextIdx >= activeQueue.length) {
@@ -181,7 +183,7 @@ const WordGameScreen = () => {
 
         setTimeout(() => {
           speak(n.veryGoodWord(currentEntry.word), () => {
-            setTimeout(() => nextWord(), 1500);
+            setShowNextButton(true);
           });
         }, 300);
       } else {
@@ -415,17 +417,29 @@ const WordGameScreen = () => {
         </div>
       </div>
 
-      {/* Bottom — Replay button */}
+      {/* Bottom — Next button after correct, Replay otherwise */}
       <div className="flex-shrink-0 flex justify-center px-4 pb-5 pt-2">
-        <button
-          onClick={handleReplay}
-          disabled={inputDisabled || phase !== "asking"}
-          className="replay-btn"
-          aria-label="Replay instruction"
-        >
-          <Volume2 className="w-6 h-6" />
-          <span>Replay</span>
-        </button>
+        {showNextButton ? (
+          <button
+            onClick={nextWord}
+            className="replay-btn justify-center"
+            style={{ backgroundColor: "#B8F2E6", boxShadow: "0 4px 0 #85d4c0" }}
+            aria-label="Next word"
+          >
+            <span>Next</span>
+            <span style={{ fontSize: "1.2rem" }}>→</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleReplay}
+            disabled={inputDisabled || phase !== "asking"}
+            className="replay-btn"
+            aria-label="Replay instruction"
+          >
+            <Volume2 className="w-6 h-6" />
+            <span>Replay</span>
+          </button>
+        )}
       </div>
     </div>
   );
