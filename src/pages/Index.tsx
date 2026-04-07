@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Settings } from "lucide-react";
 import capybaraDuck from "@/assets/capybara-duck.png";
+import { SettingsSheet } from "@/components/SettingsSheet";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
@@ -14,6 +18,13 @@ const Index = () => {
           alt="Capybara with rubber duck"
           className="w-full h-full object-contain"
         />
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="absolute top-3 right-3 rounded-full bg-white shadow-md border border-gray-200 w-9 h-9 flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Settings"
+        >
+          <Settings className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
 
       {/* ── Bottom: title + game buttons ───────────────────────────────────── */}
@@ -88,6 +99,8 @@ const Index = () => {
 
         </div>
       </div>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 };
