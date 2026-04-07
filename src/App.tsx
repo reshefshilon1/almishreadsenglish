@@ -7,6 +7,8 @@ import LevelSelect from "./pages/LevelSelect.tsx";
 import GameScreen from "./pages/GameScreen.tsx";
 import SoundsLevelSelect from "./pages/SoundsLevelSelect.tsx";
 import SoundsGameScreen from "./pages/SoundsGameScreen.tsx";
+import WordLevelSelect from "./pages/WordLevelSelect.tsx";
+import WordGameScreen from "./pages/WordGameScreen.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/game/:gameType/:level" element={<GameScreen />} />
           <Route path="/sounds" element={<SoundsLevelSelect />} />
           <Route path="/sounds/:level" element={<SoundsGameScreen />} />
+          <Route path="/words" element={<WordLevelSelect />} />
+          <Route path="/words/:level" element={<WordGameScreen />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

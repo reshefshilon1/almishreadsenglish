@@ -393,7 +393,7 @@ const SoundsGameScreen = () => {
         </div>
 
         {/* Capybara image */}
-        <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#4a7c3f" }}>
+        <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#ffffff" }}>
           <img
             src={capybaraDuck}
             alt="Capybara with rubber duck"

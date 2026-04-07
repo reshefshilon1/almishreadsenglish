@@ -8,7 +8,7 @@ const Index = () => {
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
 
       {/* ── Top: capybara painting ─────────────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#4a7c3f" }}>
+      <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#ffffff" }}>
         <img
           src={capybaraDuck}
           alt="Capybara with rubber duck"
@@ -68,6 +68,21 @@ const Index = () => {
             <div className="text-left min-w-0">
               <div className="font-display text-sm text-foreground leading-tight">Sounds Game</div>
               <div className="font-body text-xs text-foreground/70 mt-0.5">Phonics sh, ch…</div>
+            </div>
+          </button>
+
+          {/* Find the Word card */}
+          <button
+            onClick={() => navigate("/words")}
+            className="home-game-btn game-card-orange"
+            style={{ width: "min(100%, 160px)" }}
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/30 flex items-center justify-center">
+              <span className="font-display text-2xl text-foreground">📖</span>
+            </div>
+            <div className="text-left min-w-0">
+              <div className="font-display text-sm text-foreground leading-tight">Find the Word</div>
+              <div className="font-body text-xs text-foreground/70 mt-0.5">Word reading</div>
             </div>
           </button>
 
