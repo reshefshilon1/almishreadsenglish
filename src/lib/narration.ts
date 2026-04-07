@@ -39,10 +39,10 @@ export function getNarration(
       youDidIt: (n) => `כל הכבוד, ${playerName}! זכית ב-${n} כוכבים!`,
 
       letsFind: f ? `בואי נקשיב ונמצא את האות, ${playerName}!` : `בוא נקשיב ונמצא את האות, ${playerName}!`,
-      findLetter: (x) => f ? `מצאי את האות ${x}` : `מצא את האות ${x}`,
+      findLetter: (x) => f ? `מיצאי את האות ${x}` : `מצא את האות ${x}`,
       letsTry: f ? `בואי ננסה, ${playerName}!` : `בוא ננסה, ${playerName}!`,
-      veryGoodLetter: (x) => `כל הכבוד! זו האות ${x}!`,
-      letterIsFor: (x, animal) => `${x} זה ${animal}!`,
+      veryGoodLetter: (x) => `כל הכבוד! זו האות ${x}`,
+      letterIsFor: (x, animal) => `${x} זה ${animal}`,
       tapCorrectLetter: `אפשר ללחוץ על האות הנכונה, ${playerName}!`,
 
       levelIntro: f ? "בואי נלמד את הצלילים. אני אראה לך כמה דוגמאות." : "בוא נלמד את הצלילים. אני אראה לך כמה דוגמאות.",
@@ -50,13 +50,13 @@ export function getNarration(
       whichLetterStarts: (word) => `באיזו אות פותחת המילה ${word}?`,
       whichLetterAppears: (word) => `איזו אות מופיעה במילה ${word}?`,
       veryGoodSound: (x, word) =>
-        `כל הכבוד! האות ${x} פותחת את המילה ${word}!`,
+        `כל הכבוד! האות ${x} פותחת את המילה ${word}`,
       soundLike: (x, word) => `${x} כמו ${word}`,
       thisOneIs: (x, word) =>
         `זו האות ${x}. האות ${x} פותחת את המילה ${word}.`,
 
       letsFindWord: f ? `בואי נמצא את המילה, ${playerName}!` : `בוא נמצא את המילה, ${playerName}!`,
-      findWord: (word) => f ? `מצאי את המילה ${word}` : `מצא את המילה ${word}`,
+      findWord: (word) => f ? `מיצאי את המילה ${word}` : `מצא את המילה ${word}`,
       veryGoodWord: (word) => `כל הכבוד! זו המילה ${word}.`,
       thisIsWord: (word) => `זו המילה ${word}.`,
     };
