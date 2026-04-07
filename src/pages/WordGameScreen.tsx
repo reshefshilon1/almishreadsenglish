@@ -398,10 +398,7 @@ const WordGameScreen = () => {
                 }}
                 aria-label={`Word ${word}`}
               >
-                <span
-                  className="font-display text-foreground"
-                  style={{ fontSize: "clamp(1.4rem, 5.5vw, 2rem)", lineHeight: 1.1, userSelect: "none" }}
-                >
+                <span className="letter-card-text" style={{ fontSize: "clamp(1.8rem, 7.5vw, 2.8rem)" }}>
                   {word}
                 </span>
               </button>
