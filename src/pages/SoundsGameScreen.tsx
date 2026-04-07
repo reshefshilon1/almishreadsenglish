@@ -561,7 +561,7 @@ const SoundsGameScreen = () => {
         </div>
 
         <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">
-          You did it, Alma!
+          You did it, {playerName}!
         </h2>
         <p className="font-body text-xl text-muted-foreground mb-8 relative z-10">
           You won {totalStars} stars!
