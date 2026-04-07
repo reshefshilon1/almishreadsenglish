@@ -4,6 +4,8 @@ import { ArrowLeft, Volume2, Star } from "lucide-react";
 import capybaraMascot from "@/assets/capybara-mascot.png";
 import { WORD_LEVELS, WordEntry } from "@/lib/wordData";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getNarration } from "@/lib/narration";
 
 // ── Card color palette ───────────────────────────────────────────────────────
 const CARD_COLORS = [
@@ -98,7 +100,10 @@ function playChime(): void {
 const WordGameScreen = () => {
   const { level } = useParams<{ level: string }>();
   const navigate = useNavigate();
-  const { speak, cancel, voicesReady } = useSpeechSynthesis();
+  const { settings } = useSettings();
+  const { playerName, narrationLang, gender } = settings;
+  const n = getNarration(narrationLang, playerName, gender);
+  const { speak, cancel, voicesReady } = useSpeechSynthesis(narrationLang);
 
   const levelNum = parseInt(level ?? "1");
   const levelWords = WORD_LEVELS[levelNum] ?? WORD_LEVELS[1];
@@ -140,7 +145,7 @@ const WordGameScreen = () => {
       } else {
         setPhase("roundEnd");
         setMascotState("dancing");
-        speak(`You did it, Alma! You won ${totalStarsRef.current} stars!`);
+        speak(n.youDidIt(totalStarsRef.current));
       }
     } else {
       setCurrentIndex(nextIdx);
@@ -149,7 +154,7 @@ const WordGameScreen = () => {
       setPhase("asking");
       setMascotState("idle");
     }
-  }, [currentIndex, activeQueue, reviewMode, incorrectWords, speak]);
+  }, [currentIndex, activeQueue, reviewMode, incorrectWords, speak, n]);
 
   // ── Card tap handler ───────────────────────────────────────────────────────
   const handleCardTap = useCallback(
@@ -172,7 +177,7 @@ const WordGameScreen = () => {
         }
 
         setTimeout(() => {
-          speak(`Very good! This is the word ${currentEntry.word}.`, () => {
+          speak(n.veryGoodWord(currentEntry.word), () => {
             setTimeout(() => nextWord(), 1500);
           });
         }, 300);
@@ -189,12 +194,12 @@ const WordGameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak("Nice try! Let's try again.", () => {
+            speak(n.niceTry, () => {
               setCardStates((cs) => ({ ...cs, [tappedWord]: "default" }));
               setAttempts(1);
               setMascotState("idle");
               setTimeout(() => {
-                speak(`Find the word ${currentEntry.word}`, () => {
+                speak(n.findWord(currentEntry.word), () => {
                   setTimeout(() => speak(currentEntry.word), 700);
                 });
                 setInputDisabled(false);
@@ -204,7 +209,7 @@ const WordGameScreen = () => {
         } else {
           // Second wrong attempt — highlight the correct card
           setTimeout(() => {
-            speak(`This is the word ${currentEntry.word}.`, () => {
+            speak(n.thisIsWord(currentEntry.word), () => {
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const w of Object.keys(cs)) {
@@ -222,24 +227,24 @@ const WordGameScreen = () => {
         }
       }
     },
-    [inputDisabled, phase, currentEntry, cardStates, attempts, reviewMode, speak, nextWord]
+    [inputDisabled, phase, currentEntry, cardStates, attempts, reviewMode, speak, nextWord, n]
   );
 
   const handleReplay = useCallback(() => {
     if (!currentEntry || phase !== "asking") return;
-    speak(`Find the word ${currentEntry.word}`, () => {
+    speak(n.findWord(currentEntry.word), () => {
       setTimeout(() => speak(currentEntry.word), 700);
     });
-  }, [currentEntry, phase, speak]);
+  }, [currentEntry, phase, speak, n]);
 
   // ── Intro: wait for voices, then play welcome message ─────────────────────
   useEffect(() => {
     if (phase !== "intro" || !voicesReady) return;
     setInputDisabled(true);
-    speak("Let's find the word, Alma!", () => {
+    speak(n.letsFindWord, () => {
       setPhase("asking");
     });
-  }, [phase, speak, voicesReady]);
+  }, [phase, speak, voicesReady, n]);
 
   // ── Asking: generate options + play prompt on each new word ───────────────
   useEffect(() => {
@@ -250,7 +255,7 @@ const WordGameScreen = () => {
     setCardStates(Object.fromEntries(opts.map((w) => [w, "default" as CardState])));
 
     const timer = setTimeout(() => {
-      speak(`Find the word ${currentEntry.word}`, () => {
+      speak(n.findWord(currentEntry.word), () => {
         setTimeout(() => speak(currentEntry.word), 700);
       });
       setInputDisabled(false);
@@ -304,7 +309,7 @@ const WordGameScreen = () => {
           ))}
         </div>
 
-        <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">You did it, Alma!</h2>
+        <h2 className="font-display text-3xl text-foreground text-center mb-1 relative z-10">You did it, {playerName}!</h2>
         <p className="font-body text-xl text-muted-foreground mb-8 relative z-10">You won {totalStars} stars!</p>
 
         <button
