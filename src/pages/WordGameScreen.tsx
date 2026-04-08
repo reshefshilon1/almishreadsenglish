@@ -252,6 +252,8 @@ const WordGameScreen = () => {
   }, [phase, speak, voicesReady, n]);
 
   // ── Asking: generate options + play prompt on each new word ───────────────
+  // Depend on currentIndex (number primitive) not currentEntry (object) so that
+  // React reliably detects the transition between words via value comparison.
   useEffect(() => {
     if (phase !== "asking" || !currentEntry) return;
 
@@ -268,7 +270,7 @@ const WordGameScreen = () => {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, currentEntry]);
+  }, [phase, currentIndex]);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
