@@ -156,6 +156,7 @@ const SoundsGameScreen = () => {
   totalStarsRef.current = totalStars;
   const nextButtonFallbackRef = useRef<number | null>(null);
   const inputFallbackRef = useRef<number | null>(null);
+  const inputBlockedRef = useRef(true); // synchronous lock — updated immediately, unlike React state
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentSound = activeQueue[currentIndex] ?? null;
@@ -182,6 +183,7 @@ const SoundsGameScreen = () => {
         setIncorrectSounds([]);
         setCurrentIndex(0);
         setAttempts(0);
+        inputBlockedRef.current = true;
         setInputDisabled(true);
         setPhase("asking");
         setMascotState("idle");
@@ -193,6 +195,7 @@ const SoundsGameScreen = () => {
     } else {
       setCurrentIndex(nextIdx);
       setAttempts(0);
+      inputBlockedRef.current = true;
       setInputDisabled(true);
       setPhase("asking");
       setMascotState("idle");
@@ -202,9 +205,10 @@ const SoundsGameScreen = () => {
   // ── Card tap handler ──────────────────────────────────────────────────────
   const handleCardTap = useCallback(
     (tappedSound: string) => {
-      if (inputDisabled || phase !== "asking" || !currentSound) return;
+      if (inputBlockedRef.current || phase !== "asking" || !currentSound) return;
       if (cardStates[tappedSound] === "disabled") return;
 
+      inputBlockedRef.current = true; // lock synchronously before any await/setState
       setInputDisabled(true);
       playClick();
 
@@ -274,6 +278,7 @@ const SoundsGameScreen = () => {
                     ? n.whichLetterAppears(entry?.exampleWord ?? currentSound)
                     : n.whichLetterStarts(entry?.exampleWord ?? currentSound)
                 );
+                inputBlockedRef.current = false;
                 setInputDisabled(false);
               }, 250);
             };
@@ -309,7 +314,6 @@ const SoundsGameScreen = () => {
       }
     },
     [
-      inputDisabled,
       phase,
       currentSound,
       cardStates,
@@ -413,6 +417,7 @@ const SoundsGameScreen = () => {
           ? n.whichLetterAppears(entry?.exampleWord ?? currentSound)
           : n.whichLetterStarts(entry?.exampleWord ?? currentSound)
       );
+      inputBlockedRef.current = false;
       setInputDisabled(false);
     }, 300);
 

@@ -143,6 +143,7 @@ const GameScreen = () => {
   totalStarsRef.current = totalStars;
   const nextButtonFallbackRef = useRef<number | null>(null);
   const inputFallbackRef = useRef<number | null>(null);
+  const inputBlockedRef = useRef(true); // synchronous lock — updated immediately, unlike React state
   const phaseRef = useRef<GamePhase>("intro");
   phaseRef.current = phase;
 
@@ -197,6 +198,7 @@ const GameScreen = () => {
         setIncorrectLetters([]);
         setCurrentIndex(0);
         setAttempts(0);
+        inputBlockedRef.current = true;
         setInputDisabled(true);
         setPhase("asking");
         setMascotState("idle");
@@ -208,6 +210,7 @@ const GameScreen = () => {
     } else {
       setCurrentIndex(nextIdx);
       setAttempts(0);
+      inputBlockedRef.current = true;
       setInputDisabled(true);
       setPhase("asking");
       setMascotState("idle");
@@ -217,9 +220,10 @@ const GameScreen = () => {
   // ── Card tap handler ───────────────────────────────────────────────────────
   const handleCardTap = useCallback(
     (tappedLetter: string) => {
-      if (inputDisabled || phase !== "asking" || !currentLetter) return;
+      if (inputBlockedRef.current || phase !== "asking" || !currentLetter) return;
       if (cardStates[tappedLetter] === "disabled") return;
 
+      inputBlockedRef.current = true; // lock synchronously before any await/setState
       setInputDisabled(true);
       clearTimers();
       playClick();
@@ -287,6 +291,7 @@ const GameScreen = () => {
               setMascotState("idle");
               setTimeout(() => {
                 speak(n.findLetter(currentLetter.toUpperCase()));
+                inputBlockedRef.current = false;
                 setInputDisabled(false);
                 armIdleTimers(currentLetter);
               }, 250);
@@ -297,7 +302,14 @@ const GameScreen = () => {
         } else {
           // Second wrong attempt — highlight the correct card
           setTimeout(() => {
-            speak(n.tapCorrectLetter, () => {
+            let fired = false;
+            const afterTapCorrect = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const l of Object.keys(cs)) {
@@ -307,15 +319,17 @@ const GameScreen = () => {
                 }
                 return next;
               });
+              inputBlockedRef.current = false;
               setInputDisabled(false);
               setMascotState("idle");
-            });
+            };
+            speak(n.tapCorrectLetter, afterTapCorrect);
+            inputFallbackRef.current = window.setTimeout(afterTapCorrect, 4000);
           }, 300);
         }
       }
     },
     [
-      inputDisabled,
       phase,
       currentLetter,
       cardStates,
@@ -357,6 +371,7 @@ const GameScreen = () => {
     const timer = setTimeout(() => {
       speak(n.findLetter(currentLetter.toUpperCase()));
       armIdleTimers(currentLetter);
+      inputBlockedRef.current = false;
       setInputDisabled(false);
     }, 300);
 

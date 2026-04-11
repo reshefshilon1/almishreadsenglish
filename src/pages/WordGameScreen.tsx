@@ -131,6 +131,7 @@ const WordGameScreen = () => {
 
   const nextButtonFallbackRef = useRef<number | null>(null);
   const inputFallbackRef = useRef<number | null>(null);
+  const inputBlockedRef = useRef(true); // synchronous lock — updated immediately, unlike React state
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentEntry = activeQueue[currentIndex] ?? null;
@@ -155,6 +156,7 @@ const WordGameScreen = () => {
         setIncorrectWords([]);
         setCurrentIndex(0);
         setAttempts(0);
+        inputBlockedRef.current = true;
         setInputDisabled(true);
         setPhase("asking");
         setMascotState("idle");
@@ -166,6 +168,7 @@ const WordGameScreen = () => {
     } else {
       setCurrentIndex(nextIdx);
       setAttempts(0);
+      inputBlockedRef.current = true;
       setInputDisabled(true);
       setPhase("asking");
       setMascotState("idle");
@@ -175,9 +178,10 @@ const WordGameScreen = () => {
   // ── Card tap handler ───────────────────────────────────────────────────────
   const handleCardTap = useCallback(
     (tappedWord: string) => {
-      if (inputDisabled || phase !== "asking" || !currentEntry) return;
+      if (inputBlockedRef.current || phase !== "asking" || !currentEntry) return;
       if (cardStates[tappedWord] === "disabled") return;
 
+      inputBlockedRef.current = true; // lock synchronously before any await/setState
       setInputDisabled(true);
       playClick();
 
@@ -234,6 +238,7 @@ const WordGameScreen = () => {
                 speak(n.findWord(currentEntry.word), () => {
                   setTimeout(() => speak(currentEntry.word), 700);
                 });
+                inputBlockedRef.current = false;
                 setInputDisabled(false);
               }, 250);
             };
@@ -260,6 +265,7 @@ const WordGameScreen = () => {
                 }
                 return next;
               });
+              inputBlockedRef.current = false;
               setInputDisabled(false);
               setMascotState("idle");
               setTimeout(() => nextWord(), 2500);
@@ -270,7 +276,7 @@ const WordGameScreen = () => {
         }
       }
     },
-    [inputDisabled, phase, currentEntry, cardStates, attempts, reviewMode, speak, nextWord, n]
+    [phase, currentEntry, cardStates, attempts, reviewMode, speak, nextWord, n]
   );
 
   const handleReplay = useCallback(() => {
@@ -303,6 +309,7 @@ const WordGameScreen = () => {
       speak(n.findWord(currentEntry.word), () => {
         setTimeout(() => speak(currentEntry.word), 700);
       });
+      inputBlockedRef.current = false;
       setInputDisabled(false);
     }, 300);
 
