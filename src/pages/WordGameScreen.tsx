@@ -130,6 +130,7 @@ const WordGameScreen = () => {
   totalStarsRef.current = totalStars;
 
   const nextButtonFallbackRef = useRef<number | null>(null);
+  const inputFallbackRef = useRef<number | null>(null);
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentEntry = activeQueue[currentIndex] ?? null;
@@ -139,6 +140,10 @@ const WordGameScreen = () => {
     if (nextButtonFallbackRef.current !== null) {
       clearTimeout(nextButtonFallbackRef.current);
       nextButtonFallbackRef.current = null;
+    }
+    if (inputFallbackRef.current !== null) {
+      clearTimeout(inputFallbackRef.current);
+      inputFallbackRef.current = null;
     }
     setShowNextButton(false);
     const nextIdx = currentIndex + 1;
@@ -188,18 +193,18 @@ const WordGameScreen = () => {
         }
 
         setTimeout(() => {
-          speak(n.veryGoodWord(currentEntry.word), () => {
+          let fired = false;
+          const showNext = () => {
+            if (fired) return;
+            fired = true;
             if (nextButtonFallbackRef.current !== null) {
               clearTimeout(nextButtonFallbackRef.current);
               nextButtonFallbackRef.current = null;
             }
             setShowNextButton(true);
-          });
-          // Fallback: if TTS callback doesn't fire (mobile Chrome bug), show Next anyway
-          nextButtonFallbackRef.current = window.setTimeout(() => {
-            nextButtonFallbackRef.current = null;
-            setShowNextButton(true);
-          }, 3000);
+          };
+          speak(n.veryGoodWord(currentEntry.word), showNext);
+          nextButtonFallbackRef.current = window.setTimeout(showNext, 3000);
         }, 300);
       } else {
         // ── Wrong ──────────────────────────────────────────────────────────
@@ -214,7 +219,14 @@ const WordGameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak(n.niceTry, () => {
+            let fired = false;
+            const afterNiceTry = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => ({ ...cs, [tappedWord]: "default" }));
               setAttempts(1);
               setMascotState("idle");
@@ -224,12 +236,21 @@ const WordGameScreen = () => {
                 });
                 setInputDisabled(false);
               }, 250);
-            });
+            };
+            speak(n.niceTry, afterNiceTry);
+            inputFallbackRef.current = window.setTimeout(afterNiceTry, 4000);
           }, 300);
         } else {
           // Second wrong attempt — highlight the correct card
           setTimeout(() => {
-            speak(n.thisIsWord(currentEntry.word), () => {
+            let fired = false;
+            const afterThisIs = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const w of Object.keys(cs)) {
@@ -242,7 +263,9 @@ const WordGameScreen = () => {
               setInputDisabled(false);
               setMascotState("idle");
               setTimeout(() => nextWord(), 2500);
-            });
+            };
+            speak(n.thisIsWord(currentEntry.word), afterThisIs);
+            inputFallbackRef.current = window.setTimeout(afterThisIs, 4000);
           }, 300);
         }
       }

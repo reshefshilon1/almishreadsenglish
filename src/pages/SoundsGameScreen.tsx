@@ -155,6 +155,7 @@ const SoundsGameScreen = () => {
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
   const nextButtonFallbackRef = useRef<number | null>(null);
+  const inputFallbackRef = useRef<number | null>(null);
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentSound = activeQueue[currentIndex] ?? null;
@@ -164,6 +165,10 @@ const SoundsGameScreen = () => {
     if (nextButtonFallbackRef.current !== null) {
       clearTimeout(nextButtonFallbackRef.current);
       nextButtonFallbackRef.current = null;
+    }
+    if (inputFallbackRef.current !== null) {
+      clearTimeout(inputFallbackRef.current);
+      inputFallbackRef.current = null;
     }
     setCurrentWordEmoji(null);
     setShowWordLabel(false);
@@ -220,23 +225,23 @@ const SoundsGameScreen = () => {
         const praise = n.veryGoodSound(name, word);
 
         setTimeout(() => {
+          let fired = false;
+          const showNext = () => {
+            if (fired) return;
+            fired = true;
+            if (nextButtonFallbackRef.current !== null) {
+              clearTimeout(nextButtonFallbackRef.current);
+              nextButtonFallbackRef.current = null;
+            }
+            setShowNextButton(true);
+          };
           speak(praise, () => {
             setShowWordLabel(true);
             setTimeout(() => {
-              speak(n.soundLike(name, word), () => {
-                if (nextButtonFallbackRef.current !== null) {
-                  clearTimeout(nextButtonFallbackRef.current);
-                  nextButtonFallbackRef.current = null;
-                }
-                setShowNextButton(true);
-              });
+              speak(n.soundLike(name, word), showNext);
             }, 350);
           });
-          // Fallback: if TTS callbacks don't fire (mobile Chrome bug), show Next anyway
-          nextButtonFallbackRef.current = window.setTimeout(() => {
-            nextButtonFallbackRef.current = null;
-            setShowNextButton(true);
-          }, 5000);
+          nextButtonFallbackRef.current = window.setTimeout(showNext, 5000);
         }, 300);
       } else {
         // ── Wrong ─────────────────────────────────────────────────────────────
@@ -251,7 +256,14 @@ const SoundsGameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak(n.niceTry, () => {
+            let fired = false;
+            const afterNiceTry = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => ({ ...cs, [tappedSound]: "default" }));
               setAttempts(1);
               setMascotState("idle");
@@ -264,12 +276,21 @@ const SoundsGameScreen = () => {
                 );
                 setInputDisabled(false);
               }, 250);
-            });
+            };
+            speak(n.niceTry, afterNiceTry);
+            inputFallbackRef.current = window.setTimeout(afterNiceTry, 4000);
           }, 300);
         } else {
           // Second wrong attempt — reveal letter name + word, then auto-advance
           setTimeout(() => {
-            speak(n.thisOneIs(name, word), () => {
+            let fired = false;
+            const afterThisIs = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => {
                 const next: Record<string, CardState> = {};
                 for (const s of Object.keys(cs)) {
@@ -280,7 +301,9 @@ const SoundsGameScreen = () => {
                 return next;
               });
               setTimeout(nextSound, 2500);
-            });
+            };
+            speak(n.thisOneIs(name, word), afterThisIs);
+            inputFallbackRef.current = window.setTimeout(afterThisIs, 4000);
           }, 300);
         }
       }

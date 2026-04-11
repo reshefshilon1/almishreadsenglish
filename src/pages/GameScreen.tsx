@@ -142,6 +142,7 @@ const GameScreen = () => {
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
   const nextButtonFallbackRef = useRef<number | null>(null);
+  const inputFallbackRef = useRef<number | null>(null);
   const phaseRef = useRef<GamePhase>("intro");
   phaseRef.current = phase;
 
@@ -179,6 +180,10 @@ const GameScreen = () => {
     if (nextButtonFallbackRef.current !== null) {
       clearTimeout(nextButtonFallbackRef.current);
       nextButtonFallbackRef.current = null;
+    }
+    if (inputFallbackRef.current !== null) {
+      clearTimeout(inputFallbackRef.current);
+      inputFallbackRef.current = null;
     }
     clearTimers();
     setCurrentAnimal(null);
@@ -236,25 +241,25 @@ const GameScreen = () => {
         const emoji = letterData?.emoji ?? "";
 
         setTimeout(() => {
+          let fired = false;
+          const showNext = () => {
+            if (fired) return;
+            fired = true;
+            if (nextButtonFallbackRef.current !== null) {
+              clearTimeout(nextButtonFallbackRef.current);
+              nextButtonFallbackRef.current = null;
+            }
+            setShowNextButton(true);
+          };
           speak(n.veryGoodLetter(letterName), () => {
             if (emoji) {
               setCurrentAnimal({ emoji, name: animal });
             }
             setTimeout(() => {
-              speak(n.letterIsFor(letterName, animal), () => {
-                if (nextButtonFallbackRef.current !== null) {
-                  clearTimeout(nextButtonFallbackRef.current);
-                  nextButtonFallbackRef.current = null;
-                }
-                setShowNextButton(true);
-              });
+              speak(n.letterIsFor(letterName, animal), showNext);
             }, 350);
           });
-          // Fallback: if TTS callbacks don't fire (mobile Chrome bug), show Next anyway
-          nextButtonFallbackRef.current = window.setTimeout(() => {
-            nextButtonFallbackRef.current = null;
-            setShowNextButton(true);
-          }, 5000);
+          nextButtonFallbackRef.current = window.setTimeout(showNext, 5000);
         }, 300);
       } else {
         // ── Wrong ──────────────────────────────────────────────────────────
@@ -269,17 +274,25 @@ const GameScreen = () => {
             );
           }
           setTimeout(() => {
-            speak(n.niceTry, () => {
+            let fired = false;
+            const afterNiceTry = () => {
+              if (fired) return;
+              fired = true;
+              if (inputFallbackRef.current !== null) {
+                clearTimeout(inputFallbackRef.current);
+                inputFallbackRef.current = null;
+              }
               setCardStates((cs) => ({ ...cs, [tappedLetter]: "default" }));
               setAttempts(1);
               setMascotState("idle");
-              // Re-state the instruction so the child knows what to find
               setTimeout(() => {
                 speak(n.findLetter(currentLetter.toUpperCase()));
                 setInputDisabled(false);
                 armIdleTimers(currentLetter);
               }, 250);
-            });
+            };
+            speak(n.niceTry, afterNiceTry);
+            inputFallbackRef.current = window.setTimeout(afterNiceTry, 4000);
           }, 300);
         } else {
           // Second wrong attempt — highlight the correct card
