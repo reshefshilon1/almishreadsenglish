@@ -154,12 +154,17 @@ const SoundsGameScreen = () => {
 
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
+  const nextButtonFallbackRef = useRef<number | null>(null);
 
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentSound = activeQueue[currentIndex] ?? null;
 
   // ── Advance to next sound ─────────────────────────────────────────────────
   const nextSound = useCallback(() => {
+    if (nextButtonFallbackRef.current !== null) {
+      clearTimeout(nextButtonFallbackRef.current);
+      nextButtonFallbackRef.current = null;
+    }
     setCurrentWordEmoji(null);
     setShowWordLabel(false);
     setShowNextButton(false);
@@ -219,10 +224,19 @@ const SoundsGameScreen = () => {
             setShowWordLabel(true);
             setTimeout(() => {
               speak(n.soundLike(name, word), () => {
+                if (nextButtonFallbackRef.current !== null) {
+                  clearTimeout(nextButtonFallbackRef.current);
+                  nextButtonFallbackRef.current = null;
+                }
                 setShowNextButton(true);
               });
             }, 350);
           });
+          // Fallback: if TTS callbacks don't fire (mobile Chrome bug), show Next anyway
+          nextButtonFallbackRef.current = window.setTimeout(() => {
+            nextButtonFallbackRef.current = null;
+            setShowNextButton(true);
+          }, 5000);
         }, 300);
       } else {
         // ── Wrong ─────────────────────────────────────────────────────────────

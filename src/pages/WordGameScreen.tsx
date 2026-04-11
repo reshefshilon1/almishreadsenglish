@@ -129,11 +129,17 @@ const WordGameScreen = () => {
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
 
+  const nextButtonFallbackRef = useRef<number | null>(null);
+
   const activeQueue = reviewMode ? reviewQueue : queue;
   const currentEntry = activeQueue[currentIndex] ?? null;
 
   // ── Advance to next word ───────────────────────────────────────────────────
   const nextWord = useCallback(() => {
+    if (nextButtonFallbackRef.current !== null) {
+      clearTimeout(nextButtonFallbackRef.current);
+      nextButtonFallbackRef.current = null;
+    }
     setShowNextButton(false);
     const nextIdx = currentIndex + 1;
 
@@ -183,8 +189,17 @@ const WordGameScreen = () => {
 
         setTimeout(() => {
           speak(n.veryGoodWord(currentEntry.word), () => {
+            if (nextButtonFallbackRef.current !== null) {
+              clearTimeout(nextButtonFallbackRef.current);
+              nextButtonFallbackRef.current = null;
+            }
             setShowNextButton(true);
           });
+          // Fallback: if TTS callback doesn't fire (mobile Chrome bug), show Next anyway
+          nextButtonFallbackRef.current = window.setTimeout(() => {
+            nextButtonFallbackRef.current = null;
+            setShowNextButton(true);
+          }, 3000);
         }, 300);
       } else {
         // ── Wrong ──────────────────────────────────────────────────────────

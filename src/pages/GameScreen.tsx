@@ -141,6 +141,7 @@ const GameScreen = () => {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalStarsRef = useRef(0);
   totalStarsRef.current = totalStars;
+  const nextButtonFallbackRef = useRef<number | null>(null);
   const phaseRef = useRef<GamePhase>("intro");
   phaseRef.current = phase;
 
@@ -175,6 +176,10 @@ const GameScreen = () => {
 
   // ── Advance to next letter ─────────────────────────────────────────────────
   const nextLetter = useCallback(() => {
+    if (nextButtonFallbackRef.current !== null) {
+      clearTimeout(nextButtonFallbackRef.current);
+      nextButtonFallbackRef.current = null;
+    }
     clearTimers();
     setCurrentAnimal(null);
     setShowNextButton(false);
@@ -237,10 +242,19 @@ const GameScreen = () => {
             }
             setTimeout(() => {
               speak(n.letterIsFor(letterName, animal), () => {
+                if (nextButtonFallbackRef.current !== null) {
+                  clearTimeout(nextButtonFallbackRef.current);
+                  nextButtonFallbackRef.current = null;
+                }
                 setShowNextButton(true);
               });
             }, 350);
           });
+          // Fallback: if TTS callbacks don't fire (mobile Chrome bug), show Next anyway
+          nextButtonFallbackRef.current = window.setTimeout(() => {
+            nextButtonFallbackRef.current = null;
+            setShowNextButton(true);
+          }, 5000);
         }, 300);
       } else {
         // ── Wrong ──────────────────────────────────────────────────────────
