@@ -205,5 +205,17 @@ export const TEACHING_SLIDES: Record<number, TeachingSlide[]> = {
         { word: "lie", emoji: "🤥", highlight: "ie" },
       ],
     },
+    {
+      focusText: "OA",
+      intro: "The letters O A are in these words.",
+      heIntro: "הצליל OA עושה oh כמו במילה boat",
+      words: ["boat", "soap", "coat", "soak"],
+      examples: [
+        { word: "boat", emoji: "⛵", highlight: "oa" },
+        { word: "soap", emoji: "🧼", highlight: "oa" },
+        { word: "coat", emoji: "🧥", highlight: "oa" },
+        { word: "soak", emoji: "🛁", highlight: "oa" },
+      ],
+    },
   ],
 };

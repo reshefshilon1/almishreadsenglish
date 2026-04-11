@@ -46,20 +46,21 @@ export const SOUND_MAP: Record<string, SoundEntry> = {
   ai: { sound: "ai", exampleWord: "aim",      phonemeGroup: "long-a",  ttsSound: "ay",  ttsName: "A I", emoji: "🎯" },
   au: { sound: "au", exampleWord: "autumn",   phonemeGroup: "aw",      ttsSound: "aw",  ttsName: "A U", emoji: "🍂" },
   ie: { sound: "ie", exampleWord: "pie",      phonemeGroup: "long-i",  ttsSound: "eye", ttsName: "I E", emoji: "🥧" },
+  oa: { sound: "oa", exampleWord: "boat",     phonemeGroup: "long-o",  ttsSound: "oh",  ttsName: "O A", emoji: "⛵" },
 };
 
 export const SOUNDS_LEVELS: Record<number, string[]> = {
   1: ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "q", "r", "s", "t", "v", "w", "y", "z"],
   2: ["a", "e", "i", "o", "u"],
   3: ["sh", "ch", "th", "ph"],
-  4: ["ee", "ea", "ai", "au", "ie"],
+  4: ["ee", "ea", "ai", "au", "ie", "oa"],
 };
 
 export const SOUNDS_LEVEL_INFO = [
   { level: 1, label: "Consonants",     count: 20, color: "bg-game-green"  },
   { level: 2, label: "Short Vowels",   count: 5,  color: "bg-game-blue"   },
   { level: 3, label: "Digraphs",       count: 4,  color: "bg-game-purple" },
-  { level: 4, label: "Vowel Clusters", count: 5,  color: "bg-game-orange" },
+  { level: 4, label: "Vowel Clusters", count: 6,  color: "bg-game-orange" },
 ];
 
 // Phonetically confusable sounds — preferred distractors per target.
@@ -94,6 +95,7 @@ const SIMILAR_SOUNDS: Record<string, string[]> = {
   ai: ["a", "e", "ee"],
   au: ["o", "u", "a"],
   ie: ["i", "e", "ai"],          // long-i sound — ee/ea are different phonemeGroup, safe distractors
+  oa: ["o", "u", "au"],          // long-o sound
 };
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -157,7 +159,7 @@ export function getSoundDistractors(
 }
 
 // Sounds whose letters appear in the middle of the example word (vowel clusters)
-export const CONTAINS_SOUNDS = new Set(["ee", "ea", "ai", "au", "ie", "oo"]);
+export const CONTAINS_SOUNDS = new Set(["ee", "ea", "ai", "au", "ie", "oo", "oa"]);
 
 export function getSoundPrompt(sound: string): string {
   const entry = SOUND_MAP[sound];

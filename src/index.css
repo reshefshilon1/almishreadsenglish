@@ -194,6 +194,8 @@
 
   .letter-card-highlighted {
     animation: card-highlight-pulse 0.9s ease-in-out infinite;
+    transform: scale(1.07);
+    z-index: 1;
   }
 
   .letter-card-text {
@@ -302,8 +304,8 @@
 }
 
 @keyframes card-highlight-pulse {
-  0%,100% { box-shadow: 0 0 0 3px hsl(var(--game-yellow) / 0.7), 0 6px 0 rgba(0,0,0,0.12); }
-  50%     { box-shadow: 0 0 0 7px hsl(var(--game-yellow) / 1),   0 6px 0 rgba(0,0,0,0.12), 0 0 22px hsl(var(--game-yellow) / 0.5); }
+  0%,100% { box-shadow: 0 0 0 5px hsl(var(--game-orange) / 0.9), 0 6px 0 rgba(0,0,0,0.12); }
+  50%     { box-shadow: 0 0 0 12px hsl(var(--game-orange) / 1),  0 6px 0 rgba(0,0,0,0.12), 0 0 28px hsl(var(--game-orange) / 0.6); }
 }
 
 @keyframes mascot-happy {
