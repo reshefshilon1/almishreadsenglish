@@ -21,16 +21,9 @@ if (typeof window !== "undefined") {
     if (_speechUnlocked) return;
     _speechUnlocked = true;
     console.log("[TTS] unlock triggered, pending:", _pendingSpeaks.length);
-    try {
-      const primer = new SpeechSynthesisUtterance(" ");
-      primer.volume = 0;
-      primer.onend   = () => console.log("[TTS] primer onend");
-      primer.onerror = (e) => console.log("[TTS] primer onerror:", e.error);
-      window.speechSynthesis.speak(primer);
-      console.log("[TTS] primer speak() called");
-    } catch (e) {
-      console.log("[TTS] primer exception:", e);
-    }
+    // No primer — calling speak() with a dummy utterance consumes the gesture
+    // token synchronously (even on not-allowed), leaving nothing for the real
+    // speech that follows. Flush directly so the first real speak() gets the token.
     _flushPending();
   };
   // touchend fires after finger lifts — Chrome Android grants speech permission here.
