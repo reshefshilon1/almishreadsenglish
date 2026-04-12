@@ -1,7 +1,36 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 
-// Female English voices in priority order.
-// "Google US English" is intentionally excluded — it maps to a male voice on many systems.
+// ── Mobile unlock ─────────────────────────────────────────────────────────────
+// Chrome Android requires speechSynthesis.speak() to be called from a user
+// gesture before the API will produce any audio. Game intros fire from a
+// useEffect (not a gesture), so they're silently ignored until unlocked.
+// We listen for the very first touchstart/click and play a near-silent
+// utterance to unlock the API for the rest of the session.
+let _speechUnlocked = false;
+const _pendingSpeaks: Array<() => void> = [];
+
+function _flushPending() {
+  const queue = _pendingSpeaks.splice(0);
+  queue.forEach((fn) => fn());
+}
+
+if (typeof window !== "undefined") {
+  const _unlock = () => {
+    if (_speechUnlocked) return;
+    _speechUnlocked = true;
+    try {
+      const primer = new SpeechSynthesisUtterance(" ");
+      primer.volume = 0;
+      window.speechSynthesis.speak(primer);
+    } catch {}
+    _flushPending();
+  };
+  // touchstart fires before click — catches the gesture that navigates to the game
+  document.addEventListener("touchstart", _unlock, { once: true, passive: true });
+  document.addEventListener("click",      _unlock, { once: true });
+}
+
+// ── Voice selection ───────────────────────────────────────────────────────────
 const VOICE_PRIORITY = [
   "Google UK English Female",
   "Microsoft Zira Desktop - English (United States)",
@@ -19,21 +48,16 @@ const VOICE_PRIORITY = [
 ];
 
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  // 1. Try the named priority list first
   for (const name of VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  // 2. Fall back to any English voice whose name suggests "female"
   const female = voices.find(
     (v) =>
       v.lang.startsWith("en") &&
-      /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(
-        v.name
-      )
+      /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(v.name)
   );
   if (female) return female;
-  // 3. Any English voice
   return voices.find((v) => v.lang.startsWith("en")) ?? null;
 }
 
@@ -43,15 +67,14 @@ const HEBREW_VOICE_PRIORITY = [
 ];
 
 function pickHebrewVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  // 1. Try named priority list
   for (const name of HEBREW_VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  // 2. Fallback: any voice with lang starting "he"
   return voices.find((v) => v.lang.startsWith("he")) ?? null;
 }
 
+// ── Hook ──────────────────────────────────────────────────────────────────────
 export function useSpeechSynthesis(lang: "en" | "he" = "en") {
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const activeCallRef = useRef(0);
@@ -79,7 +102,6 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
       return;
     }
 
-    // Re-try loading voices if not yet available (Chrome async voices)
     if (voicesRef.current.length === 0) {
       voicesRef.current = window.speechSynthesis.getVoices();
     }
@@ -94,30 +116,36 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
       onEnd?.();
     };
 
-    window.speechSynthesis.cancel();
-    // Chrome Android fix: cancel() can leave synthesis in a paused/broken state.
-    // resume() resets it before the next speak() call.
-    window.speechSynthesis.resume();
+    const doSpeak = () => {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
 
-    const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.85;
-    utterance.pitch = 1.05;
-    utterance.volume = 1;
-    utterance.lang = lang === "he" ? "he-IL" : "en-US";
-    if (voice) utterance.voice = voice;
+      const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.85;
+      utterance.pitch = 1.05;
+      utterance.volume = 1;
+      utterance.lang = lang === "he" ? "he-IL" : "en-US";
+      if (voice) utterance.voice = voice;
 
-    utterance.onend = fireEnd;
-    utterance.onerror = (e) => {
-      console.warn("TTS error:", e.error, "text:", text);
-      fireEnd();
+      utterance.onend = fireEnd;
+      utterance.onerror = (e) => {
+        console.warn("TTS error:", e.error, "text:", text);
+        fireEnd();
+      };
+
+      const wordCount = text.split(/\s+/).length;
+      setTimeout(fireEnd, wordCount * 600 + 3000);
+
+      window.speechSynthesis.speak(utterance);
     };
 
-    // Watchdog: if onend never fires (Chrome bug), advance after estimated duration
-    const wordCount = text.split(/\s+/).length;
-    setTimeout(fireEnd, wordCount * 600 + 3000);
-
-    window.speechSynthesis.speak(utterance);
+    if (_speechUnlocked) {
+      doSpeak();
+    } else {
+      // Defer until the user's first gesture unlocks the speech synthesis API
+      _pendingSpeaks.push(doSpeak);
+    }
   }, [lang]);
 
   return { speak, cancel, voicesReady };
