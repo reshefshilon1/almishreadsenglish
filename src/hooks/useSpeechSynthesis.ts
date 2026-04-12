@@ -172,9 +172,10 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
       utterance.volume = 1;
       if (voice) {
         utterance.voice = voice;
-        // Use voice.lang exactly (may be "en_US" with underscore on Android) —
-        // mismatching lang causes synthesis-failed on Chrome Android.
-        utterance.lang = voice.lang;
+        // Normalize lang to hyphens — voice.lang on Android uses underscores ("en_US")
+        // but the speech engine expects BCP 47 format ("en-US"). Using the raw value
+        // causes synthesis-failed even though the voice is accepted.
+        utterance.lang = normLang(voice.lang);
       } else {
         utterance.lang = lang === "he" ? "he-IL" : "en-US";
       }
