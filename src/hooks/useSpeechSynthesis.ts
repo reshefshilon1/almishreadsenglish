@@ -18,16 +18,22 @@ if (typeof window !== "undefined") {
   const _unlock = () => {
     if (_speechUnlocked) return;
     _speechUnlocked = true;
+    console.log("[TTS] unlock triggered, pending:", _pendingSpeaks.length);
     try {
       const primer = new SpeechSynthesisUtterance(" ");
       primer.volume = 0;
+      primer.onend   = () => console.log("[TTS] primer onend");
+      primer.onerror = (e) => console.log("[TTS] primer onerror:", e.error);
       window.speechSynthesis.speak(primer);
-    } catch {}
+      console.log("[TTS] primer speak() called");
+    } catch (e) {
+      console.log("[TTS] primer exception:", e);
+    }
     _flushPending();
   };
-  // touchstart fires before click — catches the gesture that navigates to the game
   document.addEventListener("touchstart", _unlock, { once: true, passive: true });
   document.addEventListener("click",      _unlock, { once: true });
+  console.log("[TTS] module loaded, unlock listeners attached");
 }
 
 // ── Voice selection ───────────────────────────────────────────────────────────
@@ -84,6 +90,7 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
     const loadVoices = () => {
       const v = window.speechSynthesis.getVoices();
       voicesRef.current = v;
+      console.log("[TTS] voices loaded:", v.length, v.slice(0, 5).map((x) => x.name));
       if (v.length > 0) setVoicesReady(true);
     };
     loadVoices();
@@ -117,10 +124,15 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
     };
 
     const doSpeak = () => {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.resume();
+      const ss = window.speechSynthesis;
+      console.log(`[TTS] doSpeak: "${text.slice(0, 40)}" | speaking=${ss.speaking} paused=${ss.pending}`);
+
+      ss.cancel();
+      ss.resume();
 
       const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
+      console.log("[TTS] voice:", voice?.name ?? "none (default)");
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.85;
       utterance.pitch = 1.05;
@@ -128,22 +140,23 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
       utterance.lang = lang === "he" ? "he-IL" : "en-US";
       if (voice) utterance.voice = voice;
 
-      utterance.onend = fireEnd;
-      utterance.onerror = (e) => {
-        console.warn("TTS error:", e.error, "text:", text);
-        fireEnd();
-      };
+      utterance.onstart = () => console.log("[TTS] onstart:", text.slice(0, 40));
+      utterance.onend   = () => { console.log("[TTS] onend:",   text.slice(0, 40)); fireEnd(); };
+      utterance.onerror = (e) => { console.log("[TTS] onerror:", e.error, text.slice(0, 40)); fireEnd(); };
 
       const wordCount = text.split(/\s+/).length;
-      setTimeout(fireEnd, wordCount * 600 + 3000);
+      const watchdog = wordCount * 600 + 3000;
+      console.log("[TTS] watchdog in", watchdog, "ms");
+      setTimeout(fireEnd, watchdog);
 
-      window.speechSynthesis.speak(utterance);
+      ss.speak(utterance);
+      console.log("[TTS] speak() called, speaking now:", ss.speaking);
     };
 
     if (_speechUnlocked) {
       doSpeak();
     } else {
-      // Defer until the user's first gesture unlocks the speech synthesis API
+      console.log("[TTS] not unlocked yet, queuing:", text.slice(0, 40));
       _pendingSpeaks.push(doSpeak);
     }
   }, [lang]);
