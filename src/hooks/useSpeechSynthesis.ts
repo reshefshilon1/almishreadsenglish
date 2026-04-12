@@ -154,14 +154,13 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
 
     const doSpeak = () => {
       const ss = window.speechSynthesis;
-      console.log(`[TTS] doSpeak: "${text.slice(0, 40)}" | speaking=${ss.speaking} paused=${ss.pending}`);
+      console.log(`[TTS] doSpeak: "${text.slice(0, 40)}" | speaking=${ss.speaking} paused=${ss.paused} pending=${ss.pending}`);
 
-      // Only cancel if something is active — calling cancel() on an idle engine
-      // can cause synthesis-failed on some Android Chrome versions.
-      if (ss.speaking || ss.pending) {
-        ss.cancel();
-        ss.resume();
-      }
+      // Cancel only if something is active (cancel on idle can cause synthesis-failed).
+      // Always resume — after synthesis-failed the engine may enter a paused state
+      // even when ss.speaking and ss.pending are both false.
+      if (ss.speaking || ss.pending) ss.cancel();
+      ss.resume();
 
       const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
       console.log("[TTS] voice:", voice?.name ?? "none (default)", "| voice.lang:", voice?.lang ?? "n/a");
