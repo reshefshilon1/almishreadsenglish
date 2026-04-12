@@ -37,20 +37,32 @@ if (typeof window !== "undefined") {
 }
 
 // ── Voice selection ───────────────────────────────────────────────────────────
+// Ordered by preference: feminine American accent first, then other English voices.
+// Names must match window.speechSynthesis.getVoices() exactly (case-sensitive).
 const VOICE_PRIORITY = [
-  "Google UK English Female",
-  "Microsoft Zira Desktop - English (United States)",
-  "Microsoft Zira - English (United States)",
+  // ── Android Chrome ────────────────────────────────────────────────────────
+  "Google US English",                                    // Android / Chrome desktop — female-sounding, en-US
+  // ── Windows (feminine American) ───────────────────────────────────────────
   "Microsoft Jenny Online (Natural) - English (United States)",
   "Microsoft Aria Online (Natural) - English (United States)",
+  "Microsoft Zira Desktop - English (United States)",
+  "Microsoft Zira - English (United States)",
   "Microsoft Jenny - English (United States)",
   "Microsoft Aria - English (United States)",
-  "Samantha",  // macOS / iOS
-  "Karen",     // macOS Australian
-  "Victoria",  // macOS
-  "Moira",     // macOS Irish
-  "Tessa",     // macOS South African
-  "Fiona",     // macOS Scottish
+  // ── macOS / iOS (feminine American) ───────────────────────────────────────
+  "Samantha",   // en-US — default macOS/iOS female American
+  "Nicky",      // en-US — iOS
+  "Ava",        // en-US — iOS
+  "Allison",    // en-US — iOS
+  "Susan",      // en-US — iOS
+  "Zoe",        // en-US — iOS
+  // ── Other English female voices (non-American, last resort) ───────────────
+  "Google UK English Female",
+  "Karen",      // macOS en-AU
+  "Victoria",   // macOS en-AU
+  "Moira",      // macOS en-IE
+  "Tessa",      // macOS en-ZA
+  "Fiona",      // macOS en-GB
 ];
 
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
@@ -58,12 +70,17 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
-  const female = voices.find(
+  // Prefer en-US female voices to avoid lang mismatch and get the right accent
+  const femaleUS = voices.find(
     (v) =>
-      v.lang.startsWith("en") &&
-      /female|woman|girl|zira|jenny|aria|samantha|karen|victoria|moira|tessa|fiona/i.test(v.name)
+      v.lang === "en-US" &&
+      /female|woman|girl|zira|jenny|aria|samantha|nicky|ava|allison|susan|zoe/i.test(v.name)
   );
-  if (female) return female;
+  if (femaleUS) return femaleUS;
+  // Any en-US voice beats a non-US English voice (avoids lang="en-AU" mismatch)
+  const anyUS = voices.find((v) => v.lang === "en-US");
+  if (anyUS) return anyUS;
+  // Final fallback: any English voice — set utterance.lang = voice.lang to avoid mismatch
   return voices.find((v) => v.lang.startsWith("en")) ?? null;
 }
 
@@ -131,14 +148,18 @@ export function useSpeechSynthesis(lang: "en" | "he" = "en") {
       ss.resume();
 
       const voice = lang === "he" ? pickHebrewVoice(voicesRef.current) : pickVoice(voicesRef.current);
-      console.log("[TTS] voice:", voice?.name ?? "none (default)");
+      console.log("[TTS] voice:", voice?.name ?? "none (default)", "| voice.lang:", voice?.lang ?? "n/a");
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.85;
       utterance.pitch = 1.05;
       utterance.volume = 1;
-      utterance.lang = lang === "he" ? "he-IL" : "en-US";
-      if (voice) utterance.voice = voice;
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;   // must match the voice — mismatches cause synthesis-failed on iOS
+      } else {
+        utterance.lang = lang === "he" ? "he-IL" : "en-US";
+      }
 
       utterance.onstart = () => console.log("[TTS] onstart:", text.slice(0, 40));
       utterance.onend   = () => { console.log("[TTS] onend:",   text.slice(0, 40)); fireEnd(); };
