@@ -70,6 +70,10 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
     const match = voices.find((v) => v.name === name);
     if (match) return match;
   }
+  // Log all English voices so we can see what's available on this device
+  const enVoices = voices.filter((v) => v.lang.startsWith("en"));
+  console.log("[TTS] English voices available:", enVoices.map((v) => `${v.name} (${v.lang})`).join(", "));
+
   // Prefer en-US female voices to avoid lang mismatch and get the right accent
   const femaleUS = voices.find(
     (v) =>
@@ -80,8 +84,9 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
   // Any en-US voice beats a non-US English voice (avoids lang="en-AU" mismatch)
   const anyUS = voices.find((v) => v.lang === "en-US");
   if (anyUS) return anyUS;
-  // Final fallback: any English voice — set utterance.lang = voice.lang to avoid mismatch
-  return voices.find((v) => v.lang.startsWith("en")) ?? null;
+  // Return null — let the browser pick its own default for utterance.lang="en-US"
+  // rather than forcing a voice that may cause synthesis-failed
+  return null;
 }
 
 const HEBREW_VOICE_PRIORITY = [
