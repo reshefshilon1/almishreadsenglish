@@ -80,7 +80,7 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
     if (match) return match;
   }
 
-  // Prefer en-US female voices
+  // Prefer en-US female voices (only well-known named voices confirmed to work)
   const femaleUS = voices.find(
     (v) =>
       normLang(v.lang) === "en-US" &&
@@ -88,12 +88,11 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
   );
   if (femaleUS) return femaleUS;
 
-  // Any en-US voice (handles "en_US" underscore variant from Android)
-  const anyUS = voices.find((v) => normLang(v.lang) === "en-US");
-  if (anyUS) return anyUS;
-
-  // Final fallback: any English voice — use voice.lang so utterance.lang matches exactly
-  return voices.find((v) => normLang(v.lang).startsWith("en")) ?? null;
+  // Return null — do NOT fall back to generic Android system voices (e.g.
+  // "English United States"). These consistently produce synthesis-failed.
+  // With voice=null Chrome uses its own internal default TTS engine instead.
+  console.log("[TTS] no priority voice matched — using browser default");
+  return null;
 }
 
 const HEBREW_VOICE_PRIORITY = [
