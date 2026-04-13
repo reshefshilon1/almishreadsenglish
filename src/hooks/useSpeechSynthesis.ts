@@ -71,10 +71,6 @@ function normLang(lang: string): string {
 }
 
 function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  // Always log English voices so we can see what's available on this device
-  const enVoices = voices.filter((v) => normLang(v.lang).startsWith("en"));
-  console.log("[TTS] English voices available:", enVoices.map((v) => `${v.name} (${v.lang})`).join(", "));
-
   for (const name of VOICE_PRIORITY) {
     const match = voices.find((v) => v.name === name);
     if (match) return match;
