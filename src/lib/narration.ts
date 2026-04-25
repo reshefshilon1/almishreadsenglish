@@ -25,6 +25,15 @@ export interface NarrationStrings {
   findWord: (word: string) => string;
   veryGoodWord: (word: string) => string;
   thisIsWord: (word: string) => string;
+
+  // My Words game
+  myWordsIntro: string;
+  myWordsLevelIntro: string;
+  findMyWord: (text: string) => string;
+  veryGoodMyWord: (text: string) => string;
+  thisIsMyWord: (text: string) => string;
+  niceTryYouClicked: string;   // "Nice try! You clicked on" (pause, then the tapped card)
+  tryAgain: string;            // "Try again!"
 }
 
 export function getNarration(
@@ -59,6 +68,14 @@ export function getNarration(
       findWord: (word) => f ? `מיצאי את המילה ${word}` : `מצא את המילה ${word}`,
       veryGoodWord: (word) => `כל הכבוד! זו המילה ${word}.`,
       thisIsWord: (word) => `זו המילה ${word}.`,
+
+      myWordsIntro: f ? `בואי נלמד מילים עליך, ${playerName}!` : `בוא נלמד מילים עליך, ${playerName}!`,
+      myWordsLevelIntro: f ? "בואי נתאמן על המילים שלמדנו." : "בוא נתאמן על המילים שלמדנו.",
+      findMyWord: (text) => f ? `מיצאי את המילה: ${text}` : `מצא את המילה: ${text}`,
+      veryGoodMyWord: (text) => `כל הכבוד! ${text}.`,
+      thisIsMyWord: (text) => `זה ${text}.`,
+      niceTryYouClicked: "ניסיון טוב! לחצת על המילה",
+      tryAgain: f ? "נסי שוב!" : "נסה שוב!",
     };
   }
 
@@ -88,5 +105,13 @@ export function getNarration(
     findWord: (word) => `Find the word ${word}`,
     veryGoodWord: (word) => `Very good! This is the word ${word}.`,
     thisIsWord: (word) => `This is the word ${word}.`,
+
+    myWordsIntro: `Let's learn some words about you, ${playerName}!`,
+    myWordsLevelIntro: "Let's practice the words we learned.",
+    findMyWord: (text) => `Find the word: ${text}`,
+    veryGoodMyWord: (text) => `Very good! ${text}.`,
+    thisIsMyWord: (text) => `This one is: ${text}.`,
+    niceTryYouClicked: "Nice try! You clicked on the word",
+    tryAgain: "Try again!",
   };
 }

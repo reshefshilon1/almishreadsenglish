@@ -35,6 +35,24 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           />
         </div>
 
+        {/* Player age */}
+        <div className="mb-5">
+          <label htmlFor="player-age" className="block text-xs font-semibold text-muted-foreground mb-1.5">
+            Player age
+          </label>
+          <Input
+            id="player-age"
+            type="number"
+            min={3}
+            max={12}
+            value={settings.playerAge}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              if (!isNaN(n) && n >= 3 && n <= 12) updateSettings({ playerAge: n });
+            }}
+          />
+        </div>
+
         {/* Narration language */}
         <div className="mb-5">
           <fieldset>

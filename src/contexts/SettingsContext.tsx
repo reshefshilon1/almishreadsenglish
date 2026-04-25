@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 export interface AppSettings {
   playerName: string;
+  playerAge: number;
   narrationLang: "en" | "he";
   gender: "f" | "m";
 }
@@ -10,6 +11,7 @@ const STORAGE_KEY = "almish-settings";
 
 const DEFAULTS: AppSettings = {
   playerName: "Alma",
+  playerAge: 6,
   narrationLang: "en",
   gender: "f",
 };
@@ -21,6 +23,10 @@ function loadFromStorage(): AppSettings {
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
       playerName: typeof parsed.playerName === "string" ? parsed.playerName : DEFAULTS.playerName,
+      playerAge:
+        typeof parsed.playerAge === "number" && parsed.playerAge >= 3 && parsed.playerAge <= 12
+          ? parsed.playerAge
+          : DEFAULTS.playerAge,
       narrationLang:
         parsed.narrationLang === "en" || parsed.narrationLang === "he"
           ? parsed.narrationLang

@@ -97,6 +97,21 @@ const Index = () => {
             </div>
           </button>
 
+          {/* My Words card */}
+          <button
+            onClick={() => navigate("/my-words")}
+            className="home-game-btn game-card-purple"
+            style={{ width: "min(100%, 160px)" }}
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/30 flex items-center justify-center">
+              <span className="font-display text-2xl text-foreground">💬</span>
+            </div>
+            <div className="text-left min-w-0">
+              <div className="font-display text-sm text-foreground leading-tight">My Words</div>
+              <div className="font-body text-xs text-foreground/70 mt-0.5">Simple sentences</div>
+            </div>
+          </button>
+
         </div>
       </div>
 
