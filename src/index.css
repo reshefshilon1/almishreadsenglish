@@ -112,6 +112,10 @@
     background: linear-gradient(135deg, hsl(var(--game-orange)), hsl(25 65% 78%));
   }
 
+  .game-card-purple {
+    background: linear-gradient(135deg, hsl(var(--game-purple)), hsl(270 30% 82%));
+  }
+
   .home-game-btn {
     @apply rounded-3xl p-4 shadow-lg flex items-center gap-3;
     @apply transition-all duration-200 active:scale-95 cursor-pointer;
